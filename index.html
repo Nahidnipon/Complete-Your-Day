@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Edit</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f6f9;
+    }
+
+    .profile-container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 350px;
+    }
+
+    .profile-img-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .profile-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #ddd;
+      object-fit: cover;
+      border: 2px solid #fff;
+      cursor: pointer;
+    }
+
+    .upload-btn {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 80px;
+      height: 80px;
+      background-color: rgba(0, 123, 255, 0.7);
+      color: white;
+      font-size: 30px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .profile-img-wrapper:hover .upload-btn {
+      opacity: 1;
+    }
+
+    .editable-text {
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #f7f8fa;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      text-align: center;
+      color: #333;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .editable-text:focus {
+      border: 1px solid #007bff;
+      background-color: #ffffff;
+      color: #007bff;
+    }
+
+    .title {
+      font-size: 16px;
+      margin-top: 10px;
+      color: #555;
+    }
+
+    .welcome-text {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div class="profile-container">
+  <!-- Welcome Text -->
+  <div class="welcome-text">Welcome, <span id="firstNameDisplay">First name</span></div>
+
+  <!-- Profile Image -->
+  <div class="profile-img-wrapper">
+    <img src="https://via.placeholder.com/100" alt="Profile Picture" class="profile-img" id="profilePic">
+    <div class="upload-btn" onclick="document.getElementById('fileInput').click()">+</div>
+    <input type="file" id="fileInput" style="display: none;" onchange="previewImage(event)">
+  </div>
+
+  <!-- First Name -->
+  <div class="editable-text" contenteditable="true" id="firstName" onblur="updateName()">First name</div>
+
+  <!-- Title -->
+  <div class="title">Enter title</div>
+  <div class="editable-text" contenteditable="true" id="title" onblur="updateTitle()">Title</div>
+</div>
+
+<script>
+  // Function to handle image preview
+  function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('profilePic').src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // Function to update First Name
+  function updateName() {
+    const name = document.getElementById('firstName').innerText;
+    document.getElementById('firstNameDisplay').innerText = name;
+  }
+
+  // Function to update Title
+  function updateTitle() {
+    const title = document.getElementById('title').innerText;
+    console.log('Updated Title: ', title);  // You can save it to the database or use it as needed
+  }
+
+  // Initialize with default values
+  window.onload = function() {
+    // You can load from localStorage or backend if needed
+    document.getElementById('firstName').innerText = 'John';
+    document.getElementById('title').innerText = 'Software Developer';
+  };
+</script>
+
+</body>
+</html>
