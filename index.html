@@ -57,7 +57,7 @@
       position: absolute;
       bottom: 4px;
       right: 4px;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0,0,0,0.6);
       border: none;
       border-radius: 50%;
       padding: 4px;
@@ -180,7 +180,7 @@
     }
     .tasks-block li button:hover,
     .meetings-block li button:hover { background-color: #1669c1; }
-    /* Completed Tasks Table */
+    /* Completed Tasks Section as a Monthly Report Table */
     .completed-tasks-section {
       background-color: var(--background-color);
       padding: 16px;
@@ -196,29 +196,39 @@
       color: var(--primary-color);
       text-align: center;
     }
-    .completed-tasks-section table {
+    .month-group {
+      margin-bottom: 24px;
+    }
+    .month-group h3 {
+      font-size: 1.1rem;
+      background-color: var(--highlight-bg);
+      padding: 8px;
+      margin: 0 0 8px;
+      border-radius: 4px;
+    }
+    .month-group table {
       width: 100%;
       border-collapse: collapse;
     }
-    .completed-tasks-section th,
-    .completed-tasks-section td {
+    .month-group th,
+    .month-group td {
       padding: 8px;
       border: 1px solid var(--border-color);
       text-align: left;
       font-size: 0.9rem;
     }
-    .completed-tasks-section th {
+    .month-group th {
       background-color: var(--highlight-bg);
       font-weight: 500;
     }
-    .completed-tasks-section td button {
+    .month-group td button {
       margin-right: 4px;
       padding: 4px 8px;
       font-size: 0.8rem;
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
-    .completed-tasks-section td button:hover { background-color: #1669c1; }
+    .month-group td button:hover { background-color: #1669c1; }
     /* Focus Page Styles */
     #focusPage { display: none; margin: 24px; padding: 0 24px; }
     .focus-header {
@@ -227,7 +237,11 @@
       align-items: center;
       margin-bottom: 16px;
     }
-    .focus-header .left-controls { display: flex; gap: 16px; align-items: center; }
+    .focus-header .left-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
     .focus-header button {
       padding: 6px 12px;
       border: none;
@@ -455,20 +469,10 @@
         <ul id="meetingList"></ul>
       </div>
     </div>
-    <!-- Completed Tasks Section as Table -->
+    <!-- Completed Tasks Section (Grouped by Month) -->
     <div class="completed-tasks-section">
       <h2>Completed Tasks</h2>
-      <table id="completedTasksTable">
-        <thead>
-          <tr>
-            <th>Task Name</th>
-            <th>Completed On</th>
-            <th>Links</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div id="completedTasksReport"></div>
     </div>
   </div>
   
@@ -479,7 +483,7 @@
         <button id="backButton" onclick="backToMain()">Back</button>
         <div class="breadcrumb">Task > <span id="focusTaskName"></span></div>
       </div>
-      <!-- New Complete Task button on the right -->
+      <!-- Complete Task button (only enabled if all checklist items are marked) -->
       <button id="completeTaskButton" onclick="completeFocusTask()">Complete Task</button>
     </div>
     <div class="focus-content">
@@ -697,7 +701,7 @@
     let allTasks = [];
     let ongoingTasks = [];
     let completedTasks = [];
-    // Global to store index of the task in ongoingTasks that is being focused
+    // Global to store the index of the task in ongoingTasks that is currently focused
     let currentFocusIndex = null;
     function renderAllTasks() {
       const list = document.getElementById('allTasksList');
@@ -707,9 +711,10 @@
         const span = document.createElement('span');
         span.textContent = task.title;
         const startButton = document.createElement('button');
+        // "Start Working" moves the task to Ongoing Tasks without opening the focus page.
         startButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg> Start Working`;
         startButton.onclick = function() {
-          const taskObj = allTasks.splice(index,1)[0];
+          const taskObj = allTasks.splice(index, 1)[0];
           ongoingTasks.push({ title: taskObj.title });
           renderAllTasks();
           renderOngoingTasks();
@@ -726,7 +731,7 @@
         const li = document.createElement('li');
         const span = document.createElement('span');
         span.textContent = task.title;
-        // Replace "Mark as Completed" with "Focus Session"
+        // "Focus Session" button opens the focus page for the selected task.
         const focusButton = document.createElement('button');
         focusButton.textContent = "Focus Session";
         focusButton.onclick = function() {
@@ -736,7 +741,7 @@
         const pauseButton = document.createElement('button');
         pauseButton.textContent = "Pause Task";
         pauseButton.onclick = function() {
-          const taskObj = ongoingTasks.splice(index,1)[0];
+          const taskObj = ongoingTasks.splice(index, 1)[0];
           allTasks.push({ title: taskObj.title });
           renderOngoingTasks();
           renderAllTasks();
@@ -747,65 +752,98 @@
         list.appendChild(li);
       });
     }
+    // Updated: Group Completed Tasks by Month (for monthly report)
     function renderCompletedTasks() {
-      const tableBody = document.querySelector('#completedTasksTable tbody');
-      tableBody.innerHTML = "";
-      completedTasks.forEach((task, index) => {
-        const row = document.createElement('tr');
-        // Task Name
-        const nameCell = document.createElement('td');
-        nameCell.textContent = task.title;
-        row.appendChild(nameCell);
-        // Completed On
-        const completedCell = document.createElement('td');
-        completedCell.textContent = task.completedAt;
-        row.appendChild(completedCell);
-        // Links
-        const linksCell = document.createElement('td');
-        if(task.links && task.links.length > 0){
-          task.links.forEach((link, i) => {
-            const a = document.createElement('a');
-            a.href = link;
-            a.target = "_blank";
-            a.textContent = link;
-            linksCell.appendChild(a);
-            if(i < task.links.length - 1) {
-              linksCell.appendChild(document.createTextNode(", "));
-            }
-          });
-        }
-        row.appendChild(linksCell);
-        // Actions
-        const actionsCell = document.createElement('td');
-        const addLinksBtn = document.createElement('button');
-        addLinksBtn.textContent = "Add Links";
-        addLinksBtn.onclick = function() {
-          const link = prompt("Enter a link for this completed task:");
-          if(link) {
-            if(!task.links) { task.links = []; }
-            task.links.push(link);
-            renderCompletedTasks();
+      // Group tasks by month key "YYYY-MM"
+      const groups = {};
+      completedTasks.forEach(task => {
+        // Expect task.completedTimestamp to exist. If not, create it.
+        // We store both a formatted string and a timestamp when marking as complete.
+        const timestamp = task.completedTimestamp;
+        const d = new Date(timestamp);
+        const key = `${d.getFullYear()}-${("0" + (d.getMonth()+1)).slice(-2)}`;
+        if(!groups[key]) groups[key] = [];
+        groups[key].push(task);
+      });
+      // Sort group keys descending (most recent first)
+      const monthKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+      const reportDiv = document.getElementById('completedTasksReport');
+      reportDiv.innerHTML = "";
+      monthKeys.forEach(key => {
+        // Convert key to a readable month/year string
+        const [year, month] = key.split("-");
+        const monthName = new Date(year, month - 1).toLocaleString('en-US', { month: 'long' });
+        const groupDiv = document.createElement('div');
+        groupDiv.className = "month-group";
+        const groupHeading = document.createElement('h3');
+        groupHeading.textContent = `${monthName} ${year}`;
+        groupDiv.appendChild(groupHeading);
+        // Create table for tasks in this month
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['Task Name', 'Completed On', 'Links', 'Actions'].forEach(text => {
+          const th = document.createElement('th');
+          th.textContent = text;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        groups[key].forEach((task, index) => {
+          const row = document.createElement('tr');
+          const nameCell = document.createElement('td');
+          nameCell.textContent = task.title;
+          row.appendChild(nameCell);
+          const completedCell = document.createElement('td');
+          completedCell.textContent = task.completedAt;
+          row.appendChild(completedCell);
+          const linksCell = document.createElement('td');
+          if(task.links && task.links.length > 0) {
+            task.links.forEach((link, i) => {
+              const a = document.createElement('a');
+              a.href = link;
+              a.target = "_blank";
+              a.textContent = link;
+              linksCell.appendChild(a);
+              if(i < task.links.length - 1) linksCell.appendChild(document.createTextNode(", "));
+            });
           }
-        };
-        actionsCell.appendChild(addLinksBtn);
-        const reopenBtn = document.createElement('button');
-        reopenBtn.textContent = "Reopen";
-        reopenBtn.onclick = function() {
-          const taskObj = completedTasks.splice(index,1)[0];
-          allTasks.push({ title: taskObj.title });
-          renderCompletedTasks();
-          renderAllTasks();
-        };
-        actionsCell.appendChild(reopenBtn);
-        row.appendChild(actionsCell);
-        tableBody.appendChild(row);
+          row.appendChild(linksCell);
+          const actionsCell = document.createElement('td');
+          const addLinksBtn = document.createElement('button');
+          addLinksBtn.textContent = "Add Links";
+          addLinksBtn.onclick = function() {
+            const link = prompt("Enter a link for this completed task:");
+            if(link) {
+              if(!task.links) { task.links = []; }
+              task.links.push(link);
+              renderCompletedTasks();
+            }
+          };
+          actionsCell.appendChild(addLinksBtn);
+          const reopenBtn = document.createElement('button');
+          reopenBtn.textContent = "Reopen";
+          reopenBtn.onclick = function() {
+            const taskObj = completedTasks.splice(completedTasks.indexOf(task), 1)[0];
+            allTasks.push({ title: taskObj.title });
+            renderCompletedTasks();
+            renderAllTasks();
+          };
+          actionsCell.appendChild(reopenBtn);
+          row.appendChild(actionsCell);
+          tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        groupDiv.appendChild(table);
+        reportDiv.appendChild(groupDiv);
       });
     }
     document.getElementById('allTaskForm').addEventListener('submit', function(e){
       e.preventDefault();
       const input = document.getElementById('newTaskInput');
       const title = input.value.trim();
-      if(title) {
+      if(title){
         allTasks.push({ title });
         input.value = "";
         renderAllTasks();
@@ -822,7 +860,7 @@
       return `${hour}:${minute} ${ampm}`;
     }
     function renderMeetings() {
-      meetings.sort((a,b) => a.time.localeCompare(b.time));
+      meetings.sort((a,b)=> a.time.localeCompare(b.time));
       const meetingList = document.getElementById('meetingList');
       meetingList.innerHTML = "";
       meetings.forEach((meeting, index) => {
@@ -831,10 +869,7 @@
         li.innerHTML = `<span>${meeting.title} at ${convertTo12Hour(meeting.time)}</span>`;
         const completeButton = document.createElement('button');
         completeButton.textContent = meeting.completed ? 'Undo' : 'Complete';
-        completeButton.onclick = () => {
-          meetings[index].completed = !meetings[index].completed;
-          renderMeetings();
-        };
+        completeButton.onclick = () => { meetings[index].completed = !meetings[index].completed; renderMeetings(); };
         li.appendChild(completeButton);
         meetingList.appendChild(li);
       });
@@ -862,11 +897,20 @@
       document.getElementById('taskNotes').value = "";
       resetTimer();
     }
-    // New function to complete the focused task.
+    // Modified: Check that all checklist items are marked before completing the task.
     function completeFocusTask() {
+      const checkboxes = document.querySelectorAll('#checklistItems input[type="checkbox"]');
+      for(let cb of checkboxes) {
+        if(!cb.checked) {
+          alert("Please mark all checklist items as complete before finishing the task.");
+          return;
+        }
+      }
       if(currentFocusIndex !== null) {
-        const taskObj = ongoingTasks.splice(currentFocusIndex, 1)[0];
-        taskObj.completedAt = new Date().toLocaleString();
+        const taskObj = ongoingTasks.splice(currentFocusIndex,1)[0];
+        const now = new Date();
+        taskObj.completedAt = now.toLocaleString();
+        taskObj.completedTimestamp = now.getTime();
         completedTasks.push(taskObj);
         renderOngoingTasks();
         renderCompletedTasks();
@@ -890,9 +934,7 @@
         const li = document.createElement('li');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.onchange = function(){
-          label.style.textDecoration = this.checked ? 'line-through' : 'none';
-        };
+        checkbox.onchange = function(){ label.style.textDecoration = this.checked ? 'line-through' : 'none'; };
         const label = document.createElement('span');
         label.textContent = itemText;
         li.appendChild(checkbox);
