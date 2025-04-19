@@ -18,8 +18,9 @@
         <div class="profile-section">
              <span id="profile-icon">👤</span>
              <span id="player-name">Adventurer</span>
-             <span id="player-level">Lv. 1</span>
-             <span id="player-xp" class="Nes is-primary is-small xp-bar">XP: 0/100</span> <!-- Added XP display -->
+             <!-- Reusing player-level element to display streak -->
+             <span id="player-level" class="streak-display">Streak: 0</span>
+             <!-- Removed #player-xp -->
              <button id="edit-profile-btn" type="button" class="Nes nes-btn is-warning is-small">Edit</button>
         </div>
         <div class="header-right">
@@ -89,6 +90,7 @@
                     <ul id="report-task-list" class="Nes nes-list is-circle"></ul>
                 </div>
                 <p id="report-game-status"></p>
+                 <p id="report-streak-status"></p> <!-- Added Streak Status to Report -->
                 <menu class="dialog-menu">
                     <button class="Nes nes-btn is-primary" id="close-report-btn">Acknowledged</button>
                 </menu>
@@ -129,6 +131,17 @@
                           <!-- Icons populated by JS -->
                       </div>
                  </div>
+                 <!-- New Section for Collected Items -->
+                 <div class="nes-field">
+                     <label>Collected Items:</label>
+                     <div id="collected-items-display" class="Nes nes-container is-dark is-rounded">
+                         <ul id="collected-items-list" class="Nes nes-list is-disc">
+                             <!-- Items populated by JS -->
+                         </ul>
+                         <p id="no-items-message">No items collected yet.</p>
+                     </div>
+                 </div>
+
                  <menu class="dialog-menu">
                      <button class="Nes nes-btn is-error" id="cancel-profile-edit-btn">Cancel</button>
                      <button class="Nes nes-btn is-primary" id="save-profile-btn">Save</button>
