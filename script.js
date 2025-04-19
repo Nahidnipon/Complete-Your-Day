@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileIconSpan = document.getElementById('profile-icon');
     const playerNameSpan = document.getElementById('player-name');
     const playerLevelSpan = document.getElementById('player-level');
+    const playerXpSpan = document.getElementById('player-xp'); // Added XP span
     const editProfileBtn = document.getElementById('edit-profile-btn');
 
     // New Modal Elements (Profile Edit)
@@ -48,29 +49,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Audio ---
     let completeSound, victorySound;
     try {
+        // Ensure audio files exist in an 'audio' folder at root level
         completeSound = new Audio('audio/complete.wav');
         victorySound = new Audio('audio/victory.wav');
         completeSound.preload = 'auto';
         victorySound.preload = 'auto';
+        // Attempt to unlock audio context on first user interaction
         document.body.addEventListener('click', () => {
-             if (completeSound.paused && completeSound.readyState >= 2) {
+             // Check readyState to avoid errors if file loading fails
+             if (completeSound.readyState >= 2) {
                  completeSound.volume = 0;
                  completeSound.play().then(() => completeSound.volume = 1).catch(e => console.warn("Complete sound unlock failed:", e));
              }
-             if (victorySound.paused && victorySound.readyState >= 2) {
+             if (victorySound.readyState >= 2) {
                  victorySound.volume = 0;
                  victorySound.play().then(() => victorySound.volume = 1).catch(e => console.warn("Victory sound unlock failed:", e));
              }
         }, { once: true });
 
     } catch (e) {
-        console.error("Could not load audio files. Ensure 'audio/complete.wav' and 'audio/victory.wav' exist.", e);
-        completeSound = { play: () => {}, paused: true, readyState: 4, volume: 1 };
-        victorySound = { play: () => {}, paused: true, readyState: 4, volume: 1 };
+        console.error("Could not load audio files.", e);
+        // Create dummy objects to prevent errors later if audio fails
+        completeSound = { play: () => {}, paused: true, readyState: 0, volume: 1 };
+        victorySound = { play: () => {}, paused: true, readyState: 0, volume: 1 };
     }
 
 
-    // --- Game Definitions (Full visual stages and descriptions) ---
+    // --- Game Definitions & XP ---
+    const XP_PER_TASK = 50; // Amount of XP gained per completed task
+    const XP_NEEDED_PER_LEVEL = (level) => level * 100; // Formula for XP needed for next level
+
     const GAME_THEMES = [
         {
             id: 'dragon', name: "Dragon's Downfall", progressType: 'health',
@@ -91,10 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
             incompleteMessage: "The Dragon still breathes fire! Complete your remaining quests to defeat it."
         },
         {
-            id: 'mountain', name: "Mountain Climb", progressType: 'steps',
+            id: 'mountain', name: "Mountain Climb", progressType: 'steps', stepChar: '🧗', // Add custom step character
             victoryText: "PEAK CONQUERED! You reached the summit!",
             visualStages: [
-                '⛰️', '🧗⛰️', '🧗‍♀️⛰️', '🧗‍♂️⛰️', '🏔️旗'
+                '⛰️', '⛰️', '⛰️', '⛰️', '🏔️' // Simpler stages for steps
             ],
             defeatedVisual: '🏆',
             stageDescriptions: [
@@ -108,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "You haven't reached the top yet! Complete your remaining quests to conquer the peak."
         },
         {
-            id: 'castle', name: "Build the Castle", progressType: 'build',
+            id: 'castle', name: "Build the Castle", progressType: 'build', pieces: ['🧱','🧱','🏛️','🧱','🏰'], // Custom build pieces
             victoryText: "FORTIFIED! Your castle stands strong!",
              visualStages: [
                  ' foundations ',
@@ -129,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The castle is unfinished! Complete your remaining quests to secure the fort."
         },
         {
-            id: 'map', name: "Uncover Treasure", progressType: 'reveal',
+            id: 'map', name: "Uncover Treasure", progressType: 'reveal', item: '<span class="nes-icon coin is-small"></span>', // Custom reveal item
             victoryText: "TREASURE FOUND! X marks the spot!",
             visualStages: [
                 '❓🗺️❓',
@@ -150,14 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The map is incomplete! Complete your remaining quests to find the treasure."
         },
         {
-             id: 'escape', name: "The Great Escape", progressType: 'steps',
+             id: 'escape', name: "The Great Escape", progressType: 'steps', stepChar: '🏃',
              victoryText: "ESCAPED! Freedom at last!",
              visualStages: [
                  '🔒🧱',
-                 '🏃🧱',
-                 '🏃💨🧱',
-                 '🏃💨🚧',
-                 '🏃💨🌳'
+                 '🧱', // Stage 1
+                 '🧱', // Stage 2
+                 '🚧', // Stage 3
+                 '🌳'  // Stage 4
              ],
              defeatedVisual: '🌅',
              stageDescriptions: [
@@ -171,14 +179,14 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The path is blocked! Complete your remaining quests to make your escape."
         },
         {
-             id: 'voyage', name: "Cosmic Voyage", progressType: 'steps',
+             id: 'voyage', name: "Cosmic Voyage", progressType: 'steps', stepChar: '🚀',
              victoryText: "DESTINATION REACHED! A successful journey!",
              visualStages: [
-                 '🚀',
-                 '🚀🌌',
-                 '🚀🪐',
-                 '🪐✨',
-                 '🪐🎉'
+                 '🌌', // Stage 0
+                 '🌌', // Stage 1
+                 '🪐', // Stage 2
+                 '🪐', // Stage 3
+                 '🪐'  // Stage 4
              ],
              defeatedVisual: '🪐🏠',
              stageDescriptions: [
@@ -192,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The journey is unfinished! Complete your remaining quests to reach the destination."
         },
         {
-             id: 'elixir', name: "Brew the Elixir", progressType: 'fill',
+             id: 'elixir', name: "Brew the Elixir", progressType: 'fill', item: '💧', // Fill item
              victoryText: "POTION BREWED! Magical power awaits!",
              visualStages: [
                  '🧪',
@@ -215,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The potion is incomplete! Complete your remaining quests to finish brewing it."
         },
          {
-             id: 'bean', name: "Grow the Magic Bean", progressType: 'build',
+             id: 'bean', name: "Grow the Magic Bean", progressType: 'build', pieces: ['🌱','🌿','🌲','🌳','☁️'], // Custom pieces
              victoryText: "IT'S HUGE! The beanstalk reaches the clouds!",
              visualStages: [
                  '🌰',
@@ -238,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The beanstalk is still growing! Complete your remaining quests to reach the top."
          },
          {
-             id: 'crystal', name: "Charge the Crystal", progressType: 'charge',
+             id: 'crystal', name: "Charge the Crystal", progressType: 'charge', item: '⚡', // Charge item
              victoryText: "FULLY CHARGED! The crystal glows with power!",
              visualStages: [
                  '💎',
@@ -261,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The crystal needs more energy! Complete your remaining quests to charge it."
          },
          {
-             id: 'fort', name: "Defend the Fort", progressType: 'build',
+             id: 'fort', name: "Defend the Fort", progressType: 'build', pieces: ['🧱','🛡️','🏹','🔥','👑'], // Custom pieces
              victoryText: "SECURE! The fort is impenetrable!",
              visualStages: [
                  '🏕️',
@@ -294,13 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let dateTimeInterval = null;
     let isDayCompleteState = false;
     let gameWinState = false;
-    let profile = { name: 'Adventurer', icon: '👤', level: 1 };
+    // Added xp to profile state
+    let profile = { name: 'Adventurer', icon: '👤', level: 1, xp: 0 };
 
+    // Updated localStorage keys for potential state structure changes
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v5',
-        GAME_INFO: 'vintageGameInfo_v5',
-        DAY_COMPLETE: 'vintageDayComplete_v5',
-        PROFILE: 'vintageProfile_v1'
+        TASKS: 'vintageTasks_v6',
+        GAME_INFO: 'vintageGameInfo_v6',
+        DAY_COMPLETE: 'vintageDayComplete_v6',
+        PROFILE: 'vintageProfile_v2' // Updated profile version
     };
 
     // --- Functions ---
@@ -325,15 +335,12 @@ document.addEventListener('DOMContentLoaded', () => {
          }
      }
 
-
     function getCurrentDateString() {
         const today = new Date();
         return today.toISOString().split('T')[0];
     }
 
-    // Populate Game Selection Dropdown
     function populateGameSelector() {
-        console.log("Populating game selector...");
         gameSelectDropdown.innerHTML = '';
         GAME_THEMES.forEach(game => {
             const option = document.createElement('option');
@@ -341,10 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = game.name;
             gameSelectDropdown.appendChild(option);
         });
-        console.log("Game selector populated.");
     }
 
-    // Determine which game to use (handles daily change & user selection)
     function determineGame() {
         const todayStr = getCurrentDateString();
         const storedGameInfo = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME_INFO)) || {};
@@ -353,27 +358,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let gameIdToUse = null;
 
-        // If stored game is for today's date AND it's a valid theme, use it
+        // Use stored game if it's for today AND valid
         if (storedDate === todayStr && storedGameId && GAME_THEMES.find(g => g.id === storedGameId)) {
              gameIdToUse = storedGameId;
-             console.log(`Using saved game for today (${todayStr}): ${storedGameId}`);
         } else {
-             // New day or no valid stored game for today: Pick daily game based on date hash
+             // New day or invalid stored game: Pick daily game based on date hash
              let hash = 0;
              for (let i = 0; i < todayStr.length; i++) {
                  const char = todayStr.charCodeAt(i);
                  hash = ((hash << 5) - hash) + char;
-                 hash = hash & hash; // Convert to 32bit integer
+                 hash = hash & hash;
              }
              const gameIndex = Math.abs(hash) % GAME_THEMES.length;
              gameIdToUse = GAME_THEMES[gameIndex].id;
-             console.log(`New day or no saved game. Determined daily game for ${todayStr}: ${gameIdToUse}`);
-             // Automatically select this game in the dropdown & save it as the day's game
-             saveGameSelection(gameIdToUse, todayStr); // Save the newly determined daily game
+             // Automatically save this new daily game selection
+             saveGameSelection(gameIdToUse, todayStr);
         }
 
         currentGame = GAME_THEMES.find(g => g.id === gameIdToUse);
-        if (!currentGame) { // Fallback if gameId is invalid or not found
+        if (!currentGame) { // Fallback if gameId not found (shouldn't happen with valid IDs)
              console.warn(`Game ID "${gameIdToUse}" not found in GAME_THEMES. Falling back to first game.`);
              currentGame = GAME_THEMES[0];
              gameIdToUse = currentGame.id;
@@ -382,122 +385,99 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Ensure the dropdown reflects the determined game
         gameSelectDropdown.value = currentGame.id;
-         console.log(`Dropdown value set to: ${gameSelectDropdown.value}`);
     }
 
-    // Save the selected game ID and date
     function saveGameSelection(gameId, dateStr) {
-         console.log(`Saving game selection: ID=${gameId}, Date=${dateStr}`);
          localStorage.setItem(STORAGE_KEYS.GAME_INFO, JSON.stringify({ id: gameId, date: dateStr }));
     }
 
     // Handle game selection change (User manually changing the game)
     function handleGameChange() {
-        console.log('handleGameChange fired');
-        console.log('Current day complete state:', isDayCompleteState);
-
         // This should only happen if the day is not complete
         if (isDayCompleteState) {
-            console.log('Day is complete. Reverting dropdown selection.');
-             // Revert the dropdown to the *current* game (which is the one active when the day was completed)
+             // Revert dropdown selection if day is complete and user tried to change it
             gameSelectDropdown.value = currentGame.id;
             return;
         }
 
         const selectedId = gameSelectDropdown.value;
-        console.log('User selected ID:', selectedId);
-
         const selectedGame = GAME_THEMES.find(g => g.id === selectedId);
 
         if (selectedGame) {
-            console.log('Found selected game:', selectedGame.name);
             currentGame = selectedGame;
             // Save the user's manual selection for the current day
             saveGameSelection(selectedId, getCurrentDateString());
             renderTasks(); // Re-render everything based on the new game
-            console.log(`currentGame updated to: ${currentGame.name}`);
         } else {
             console.warn("Invalid game selection:", selectedId);
-            // Revert to the current game if the selection is somehow invalid
+             // Revert to the current game if selection is invalid
             gameSelectDropdown.value = currentGame.id;
         }
     }
 
-    // Load tasks, game info, day completion state, and profile
+    // Load state from localStorage
     function loadState() {
-        console.log("Loading state...");
         const storedTasks = localStorage.getItem(STORAGE_KEYS.TASKS);
         tasks = storedTasks ? JSON.parse(storedTasks) : [];
-        console.log(`Loaded ${tasks.length} tasks.`);
 
         const storedDayComplete = localStorage.getItem(STORAGE_KEYS.DAY_COMPLETE);
         isDayCompleteState = storedDayComplete === 'true';
-        console.log(`Loaded day completion state: ${isDayCompleteState}`);
-
 
         const storedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
-        profile = storedProfile ? JSON.parse(storedProfile) : { name: 'Adventurer', icon: '👤', level: 1 };
-        console.log(`Loaded profile for ${profile.name}, Lv. ${profile.level}`);
+        // Merge default profile with loaded state, ensuring new properties like xp are included if they didn't exist before
+        profile = { ...{ name: 'Adventurer', icon: '👤', level: 1, xp: 0 }, ...(storedProfile ? JSON.parse(storedProfile) : {}) };
 
         // Check if it's a new day since the last visit *and* the day was completed
-        // We need the gameInfo to check the last visited date
-        const storedGameInfo = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME_INFO)); // Get info here
+        const storedGameInfo = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME_INFO));
         const lastVisitedDate = storedGameInfo?.date;
         const todayStr = getCurrentDateString();
 
         if (isDayCompleteState && lastVisitedDate && lastVisitedDate !== todayStr) {
-             console.log("Detected new day after previous day was completed. Starting fresh automatically.");
-             startNewDay(true); // Trigger automatic new day
-             return true; // Indicate that an automatic new day started
+             // Automatic new day start
+             startNewDay(true);
+             return true; // Indicate automatic new day started
         }
 
-        console.log("State loaded. Not an automatic new day start.");
         return false; // Indicate no automatic new day started
     }
 
-    // Save tasks, day completion state, and profile
+    // Save state to localStorage
     function saveState() {
-        console.log("Saving state...");
         localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
         localStorage.setItem(STORAGE_KEYS.DAY_COMPLETE, isDayCompleteState);
         localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
-        console.log("State saved.");
-        // saveGameSelection is called separately when the game is determined or changed
+        // saveGameSelection is called separately when game is determined/changed
     }
 
      // Render Profile Section
      function renderProfile() {
-         console.log("Rendering profile...");
          profileIconSpan.textContent = profile.icon;
          playerNameSpan.textContent = profile.name;
          playerLevelSpan.textContent = `Lv. ${profile.level}`;
+         // Display XP and XP needed for the next level
+         const xpNeeded = XP_NEEDED_PER_LEVEL(profile.level);
+         playerXpSpan.textContent = `XP: ${profile.xp}/${xpNeeded}`;
          welcomeMessage.textContent = `Welcome ${profile.name}!`;
      }
 
-    // Apply/Remove Day Completed Styling/Blocking and manage victory message
+    // Apply/Remove Day Completed Styling/Blocking
     function setDayCompletionStyling() {
-        console.log(`Setting day completion styling. Day complete: ${isDayCompleteState}`);
         const completedTasksCount = tasks.filter(task => task.completed).length;
         const totalTasksCount = tasks.length;
         const isGameWon = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
         mainContainer.classList.toggle('day-completed', isDayCompleteState);
 
-        // Manage button/input/select disabled state using the 'disabled' attribute
-        // Complete Day button is enabled only if day is NOT complete AND there are tasks AND all tasks are complete
+        // Disable/Enable buttons, input, select
         completeDayBtn.disabled = isDayCompleteState || tasks.length === 0 || (completedTasksCount < totalTasksCount);
         newDayBtn.disabled = false; // Always allow starting a new day
         addTaskBtn.disabled = isDayCompleteState;
         newTaskInput.disabled = isDayCompleteState;
         // Disable changing the game via the dropdown when the day is complete
         gameSelectDropdown.disabled = isDayCompleteState;
-        console.log(`Dropdown disabled state set to: ${gameSelectDropdown.disabled}`);
 
-
-        // Update victory message visibility based on game win state *and* if the day is complete
-        // The victory message should ideally show *after* completing the day, if the game was won.
-        // Let's link it directly to gameWinState AND isDayCompleteState for clarity.
-         if (gameWinState && isDayCompleteState) {
+        // Update victory message visibility based on game win state AND day completion
+         if (isGameWon && isDayCompleteState) {
               victoryMessage.textContent = currentGame.victoryText || "Quest Complete!";
               victoryMessage.classList.remove('hidden');
               victoryMessage.classList.add('is-success');
@@ -507,19 +487,19 @@ document.addEventListener('DOMContentLoaded', () => {
               victoryMessage.classList.remove('is-success');
          }
 
-        // Manage modal visibility based on day state
+        // Manage modal visibility (show report if day complete and report not shown)
          if (isDayCompleteState && missionReportModal.classList.contains('hidden') && !incompleteDialogOverlay.classList.contains('hidden')) {
              // Day just completed, incomplete dialog might be showing, wait for it to close.
-             // finalizeDayCompletion -> setDayCompletionStyling handles showing the report after the incomplete dialog closes.
+             // finalizeDayCompletion -> setDayCompletionStyling handles showing report after dialog close.
          } else if (isDayCompleteState && missionReportModal.classList.contains('hidden')) {
-             // Day is complete, and report is not shown -> show report
+             // Day is complete, show report
              showMissionReport();
          } else if (!isDayCompleteState) {
-             // Day is not complete, ensure report is hidden
+             // Day not complete, ensure report is hidden
              missionReportModal.classList.add('hidden');
          }
 
-        // Update report game status color (if report is visible)
+         // Update report game status color (if report is visible)
         if (!missionReportModal.classList.contains('hidden')) {
              reportGameStatus.classList.toggle('is-success', isGameWon);
         }
@@ -527,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Rendering --- Progressive Visuals ---
     function renderGameArea() {
-        console.log("Rendering game area for:", currentGame?.name || 'No Game Loaded');
         if (!currentGame) {
             gameTitle.textContent = '[Game Title Loading...]';
             gameVisual.innerHTML = '[Game Visual Loading...]';
@@ -537,8 +516,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const totalTasks = tasks.length;
             const completedTasks = tasks.filter(task => task.completed).length;
+            // Game is won if there are tasks and all are completed
             gameWinState = totalTasks > 0 && completedTasks === totalTasks;
-             console.log(`Tasks: ${completedTasks}/${totalTasks}, Win State: ${gameWinState}`);
 
             gameTitle.textContent = currentGame.name;
 
@@ -553,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentVisualHTML = currentGame.defeatedVisual || currentGame.visualStages?.[(currentGame.visualStages?.length || 1) - 1] || '🎉';
                 currentDescription = currentGame.finalDescription || currentGame.stageDescriptions?.[(currentGame.stageDescriptions?.length || 1) - 1] || "Quest Complete!";
             } else {
+                 // Use completedTasks count to determine the stage index, capped by the number of stages
                 const maxStageIndex = (currentGame.visualStages?.length || 1) - 1;
                 const stageIndex = Math.min(completedTasks, maxStageIndex);
 
@@ -562,24 +542,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- Update Main Visual DOM with Opacity Transition ---
             gameVisual.innerHTML = currentVisualHTML;
-
-            // Reset specific inline styles that might have been applied dynamically
-            gameVisual.style.filter = '';
-            gameVisual.style.transform = '';
-            const potion = gameVisual.querySelector('.potion-bottle');
-            if (potion) potion.style.filter = '';
-            const crystal = gameVisual.querySelector('.crystal-base');
-            if (crystal) { crystal.style.transform = ''; crystal.style.filter = ''; }
-
-            // Apply gameWinState class immediately for CSS effects like pulse
             gameVisual.classList.toggle('defeated', gameWinState);
 
-            // Apply dynamic styles based on current state (e.g. glow intensity, opacity)
+            // Apply dynamic styles based on current state
             applyDynamicGameVisualStyles(completedTasks, totalTasks);
 
             // --- Update Status Text ---
             gameStatusText.textContent = currentDescription;
-
 
             // Clear previous progress elements
             gameProgressArea.innerHTML = '';
@@ -603,12 +572,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         for (let i = 0; i < totalTasks; i++) {
                             const stepClass = i < completedTasks ? 'step completed' : 'step';
                              let stepContent = '';
+                             // Show character on the first incomplete step, or at the end if all are complete
                              if (i === completedTasks && !gameWinState) {
                                   stepContent = characterHTML;
-                             } else if (i === totalTasks -1 && gameWinState && currentGame.id === 'mountain'){
-                                 stepContent = '🚩';
                              } else if (i === totalTasks -1 && gameWinState) {
-                                  stepContent = '🏁';
+                                 // Show win marker at the end if won
+                                  stepContent = '🏁'; // Default win marker
+                                 if (currentGame.id === 'mountain') stepContent = '🚩'; // Specific mountain flag
+                                 if (currentGame.id === 'escape') stepContent = '🌅'; // Specific escape dawn
+                                 if (currentGame.id === 'voyage') stepContent = '🏠'; // Specific voyage planet house? or trophy?
                              }
                             stepsHTML += `<div class="${stepClass}">${stepContent ? `<span>${stepContent}</span>` : ''}</div>`;
                         }
@@ -621,19 +593,24 @@ document.addEventListener('DOMContentLoaded', () => {
                          let buildHTML = '<div class="build-progress">';
                          const piecesToShow = Math.min(completedTasks, buildPieces.length);
                          for (let i = 0; i < piecesToShow; i++) {
-                            buildHTML += `<span class="build-piece added">${buildPieces[i]}</span> `;
+                            // Ensure piece exists at index, fallback to generic block
+                            buildHTML += `<span class="build-piece added">${buildPieces[i] || '█'}</span> `;
                          }
                          buildHTML += '</div>';
                          gameProgressArea.innerHTML = buildHTML;
                          break;
 
                      case 'fill':
+                         // Use a simple text representation of fill level in progress area
                          const fillItem = currentGame.item || '💧';
+                         // Array(completedTasks + 1).join('') creates a string with `completedTasks` items.
                          gameProgressArea.innerHTML = `<span class="fill-visual">${Array(completedTasks + 1).join(fillItem)}</span>`;
                          break;
 
                      case 'charge':
+                         // Show charge symbols in progress area
                          const chargeItem = currentGame.item || '⚡';
+                          // Array(completedTasks + 1).join('') creates a string with `completedTasks` items.
                          gameProgressArea.innerHTML = `<span class="charge-indicator">${Array(completedTasks + 1).join(chargeItem)}</span>`;
                          break;
 
@@ -651,15 +628,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         break;
 
                     default:
-                        gameProgressArea.textContent = `Completed: ${completedTasks} / ${totalTasks}`;
+                        // Default progress display if type is missing or unknown
+                         gameProgressArea.innerHTML = `Completed: ${completedTasks} / ${totalTasks}`;
                 }
             } else {
                  gameProgressArea.innerHTML = '';
             }
         }
-        console.log("Game area rendering complete.");
-
-        // setDayCompletionStyling is called by renderTasks
     }
 
     function applyDynamicGameVisualStyles(completedTasks, totalTasks) {
@@ -667,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const progressFraction = totalTasks > 0 ? completedTasks / totalTasks : 0;
 
+        // Reset any previous dynamic styles
         gameVisual.style.opacity = '';
         gameVisual.style.transform = '';
         gameVisual.style.filter = '';
@@ -678,14 +654,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         if (gameWinState) {
+             // Final state styles override in-progress styles
              if (currentGame.id === 'crystal' && crystal) {
                   crystal.style.filter = 'drop-shadow(0 0 20px #fff) drop-shadow(0 0 10px cyan) saturate(150%)';
              }
-        } else if (totalTasks > 0) {
+        } else if (totalTasks > 0) { // Only apply dynamic in-progress styles if tasks exist and not won
+             // Apply dynamic styles based on progress fraction
              if (currentGame.id === 'elixir' && potion) {
-                 const hue = 120 * progressFraction;
-                 const satur = 50 + progressFraction * 100;
-                 const lightness = 50 + progressFraction * 20;
+                 const hue = 120 * progressFraction; // Green shift
+                 const satur = 50 + progressFraction * 100; // Saturation increase
+                 const lightness = 50 + progressFraction * 20; // Slight lightness
                  potion.style.filter = `hue-rotate(${hue}deg) saturate(${satur}%) brightness(${lightness}%)`;
              }
              if (currentGame.id === 'crystal' && crystal) {
@@ -696,9 +674,11 @@ document.addEventListener('DOMContentLoaded', () => {
              }
              if (currentGame.id === 'dragon') {
                  const healthPercent = 100 - progressFraction * 100;
+                 // Adjust opacity based on remaining health
                  gameVisual.style.opacity = 0.6 + (healthPercent / 100) * 0.4;
              }
         } else {
+            // Case: totalTasks === 0, ensure default styles
              gameVisual.style.opacity = 1;
              gameVisual.style.transform = 'scale(1)';
              gameVisual.style.filter = 'none';
@@ -708,7 +688,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render the task lists UI
     function renderTasks() {
-        console.log("Rendering tasks...");
         todoList.innerHTML = '';
         completedList.innerHTML = '';
 
@@ -737,18 +716,14 @@ document.addEventListener('DOMContentLoaded', () => {
              }
         }
 
-        // Render game area needs to happen *after* tasks are rendered/counted
+        // Render game area and save state after task lists are built
         renderGameArea();
-
-        // Save state after tasks and game state are potentially updated by rendering
         saveState();
-
-        // setDayCompletionStyling is called here to ensure UI state matches
+        // setDayCompletionStyling called by renderGameArea for synergy
         setDayCompletionStyling();
-        console.log("Tasks rendering complete.");
     }
 
-    // Create LI element for a task
+    // Create LI element for a task (Refactored with checkbox)
     function createTaskElement(task) {
         const li = document.createElement('li');
         li.setAttribute('data-id', task.id);
@@ -762,51 +737,70 @@ document.addEventListener('DOMContentLoaded', () => {
         li.setAttribute('role', 'checkbox');
 
 
+        // Checkbox/Completion Indicator
+        const checkbox = document.createElement('div'); // Using a div to style as a box
+        checkbox.classList.add('task-checkbox');
+        checkbox.setAttribute('role', 'presentation'); // It's part of the checkbox role on the LI
+
+
+        // Task Text
         const textSpan = document.createElement('span');
         textSpan.textContent = task.text;
         textSpan.classList.add('task-text');
-        li.appendChild(textSpan);
 
         const actionsDiv = document.createElement('div');
         actionsDiv.classList.add('task-actions');
 
-        // Edit Button (only for ToDo tasks, and if day isn't complete)
+        // Edit Button
         const editBtn = document.createElement('button');
         editBtn.innerHTML = '<i class="Nes nes-icon edit is-small"></i>';
         editBtn.classList.add('Nes', 'nes-btn', 'is-small', 'is-warning');
         editBtn.title = "Edit Quest";
+        // Disable if day complete or task is completed
         editBtn.disabled = isDayCompleteState || task.completed;
         editBtn.addEventListener('click', (e) => {
-             e.stopPropagation();
+             e.stopPropagation(); // Prevent LI click event
              if (!editBtn.disabled) {
                  editTask(task.id, li);
              }
         });
-        actionsDiv.appendChild(editBtn);
-
 
         // Delete Button
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '<i class="Nes nes-icon close is-small"></i>';
         deleteBtn.classList.add('Nes', 'nes-btn', 'is-error', 'is-small');
         deleteBtn.title = "Discard Quest";
-        deleteBtn.disabled = isDayCompleteState && !task.completed; // Allow deleting completed on completed day
+        // Allow deleting completed tasks even if day complete, but not incomplete ones if day complete
+        deleteBtn.disabled = isDayCompleteState && !task.completed;
         deleteBtn.addEventListener('click', (e) => {
-             e.stopPropagation();
+             e.stopPropagation(); // Prevent LI click event
               if (!deleteBtn.disabled) {
                  deleteTask(task.id);
               }
         });
-        actionsDiv.appendChild(deleteBtn);
 
+        // Append elements to LI
+        li.appendChild(checkbox);
+        li.appendChild(textSpan);
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
         li.appendChild(actionsDiv);
 
-        // Click listener to toggle completion
-        li.addEventListener('click', () => {
-             if (!isDayCompleteState) {
+        // Add click listener to the checkbox area only for toggling
+        checkbox.addEventListener('click', (e) => {
+             e.stopPropagation(); // Prevent LI click event
+             if (!isDayCompleteState && !task.completed) { // Only allow toggle if day isn't complete AND task isn't already complete
                  toggleTaskCompletion(task.id);
              }
         });
+         // Also allow clicking the text to toggle if desired (optional, maybe conflicts with editing)
+         // textSpan.addEventListener('click', (e) => {
+         //      e.stopPropagation();
+         //       if (!isDayCompleteState && !task.completed) {
+         //           toggleTaskCompletion(task.id);
+         //       }
+         // });
+
 
         return li;
     }
@@ -825,10 +819,11 @@ document.addEventListener('DOMContentLoaded', () => {
             newTaskInput.focus();
             return;
         }
-        tasks.push({ id: Date.now(), text: text, completed: false });
+        // Add new task to the beginning of the array (optional, makes newer tasks visible faster)
+        tasks.unshift({ id: Date.now(), text: text, completed: false });
         newTaskInput.value = '';
         newTaskInput.focus();
-        renderTasks();
+        renderTasks(); // Re-render lists and update game area
     }
 
     // Toggle task completion status
@@ -838,25 +833,71 @@ document.addEventListener('DOMContentLoaded', () => {
         let taskCompletedNow = false;
         tasks = tasks.map(task => {
             if (task.id === id) {
-                taskCompletedNow = !task.completed;
+                taskCompletedNow = !task.completed; // Determine if it's becoming completed
                 return { ...task, completed: taskCompletedNow };
             }
             return task;
         });
 
         if (taskCompletedNow) {
+             // Add XP for completing a task
+             profile.xp += XP_PER_TASK;
+             console.log(`Gained ${XP_PER_TASK} XP. Total XP: ${profile.xp}`);
+             // Check for level up after adding XP
+             checkLevelUp();
+
+             // Play sound and add animation class
              playSound(completeSound);
              const li = document.querySelector(`li[data-id='${id}']`);
              if(li) {
                  li.classList.add('completing');
+                 // Re-render after animation delay to move the task
                  setTimeout(renderTasks, 300);
              } else {
+                 // Fallback re-render immediately
                  renderTasks();
              }
         } else {
+            // If un-completing, remove XP? (Optional based on game design)
+            // For simplicity, let's not remove XP on un-complete for now.
+            // Just re-render immediately
             renderTasks();
         }
+        // saveState is called by renderTasks, which happens after task update and potential level up
     }
+
+     // Check if player should level up after gaining XP
+     function checkLevelUp() {
+         let leveledUp = false;
+         let xpNeeded = XP_NEEDED_PER_LEVEL(profile.level);
+         while (profile.xp >= xpNeeded) {
+             profile.xp -= xpNeeded; // Deduct XP needed for this level
+             levelUp(); // Increment level and update display
+             xpNeeded = XP_NEEDED_PER_LEVEL(profile.level); // Calculate XP for the *next* level
+             leveledUp = true;
+         }
+         if (leveledUp) {
+              // After potential multiple level ups, ensure profile display is updated once
+              renderProfile();
+              // saveState is called by renderTasks, which is called by toggleTaskCompletion
+              // or could be called here explicitly if no re-render follows immediately
+         } else {
+              // If no level up occurred, just update XP display
+              renderProfile();
+         }
+         // Note: saveState is handled by renderTasks which calls checkLevelUp
+     }
+
+    // Increment player level
+    function levelUp() {
+         profile.level++;
+         console.log(`${profile.name} Leveled up to Lv. ${profile.level}!`);
+         // Play a level-up specific sound if you have one, or reuse victory sound
+         playSound(victorySound); // Using victory sound for now
+         // renderProfile() is called by checkLevelUp after the loop
+         // saveState() is called by renderTasks
+     }
+
 
     // Delete a task
     function deleteTask(id) {
@@ -865,23 +906,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isDayCompleteState && !taskToDelete.completed) {
              console.log("Cannot delete incomplete tasks after completing the day.");
-             return;
+             return; // Prevent deleting incomplete tasks on a completed day
         }
 
         // Using NES dialogs would replace this confirm
         if (confirm('Discard this quest forever?')) {
             tasks = tasks.filter(task => task.id !== id);
-            renderTasks();
+            renderTasks(); // Re-render including game area update
         }
     }
 
     // Edit Task (Inline)
     function editTask(id, listItem) {
-         if (isDayCompleteState) return;
+         if (isDayCompleteState) return; // Prevent editing if day complete
         const task = tasks.find(t => t.id === id);
-        if (!task || task.completed) return;
+        if (!task || task.completed) return; // Only edit incomplete tasks
 
         const textSpan = listItem.querySelector('.task-text');
+        if (!textSpan) return; // Safety check
+
         const currentText = task.text;
         const input = document.createElement('input');
         input.type = 'text';
@@ -892,38 +935,53 @@ document.addEventListener('DOMContentLoaded', () => {
         input.style.marginBottom = '0';
         input.style.boxSizing = 'border-box';
 
-        textSpan.replaceWith(input);
+        // Replace the span with the input, but keep other elements (checkbox, actions)
+        const checkbox = listItem.querySelector('.task-checkbox');
+        const actionsDiv = listItem.querySelector('.task-actions');
+        if (!checkbox || !actionsDiv) return; // Need other elements to be present
+
+        listItem.insertBefore(input, actionsDiv); // Insert input before actions
+        textSpan.remove(); // Remove the original text span
+
+
         input.focus();
-        input.select();
+        input.select(); // Select text for easy editing
 
         const saveEdit = () => {
+            // Check if input is still in the DOM
             if(listItem.contains(input)) {
                 const newText = input.value.trim();
-                tasks = tasks.map(t => t.id === id ? { ...t, text: newText || currentText } : t);
-                renderTasks();
+                tasks = tasks.map(t => t.id === id ? { ...t, text: newText || currentText } : t); // Keep old text if empty
+                renderTasks(); // Always re-render to replace input with span and update game
             }
         };
 
+        // Save on blur
         input.addEventListener('blur', saveEdit, { once: true });
+        // Save on Enter keypress
         input.addEventListener('keypress', (e) => {
              if (e.key === 'Enter') {
-                  input.blur();
+                  input.blur(); // Trigger blur to save
              }
         });
+        // Cancel on Escape keydown
         input.addEventListener('keydown', (e) => {
              if (e.key === 'Escape') {
-                 input.removeEventListener('blur', saveEdit);
+                 input.removeEventListener('blur', saveEdit); // Prevent saving on blur
+                 // Re-create original span and replace input immediately
                  const originalSpan = document.createElement('span');
                  originalSpan.textContent = currentText;
                  originalSpan.classList.add('task-text');
-                 input.replaceWith(originalSpan);
-                 renderTasks();
+                 listItem.insertBefore(originalSpan, actionsDiv); // Insert span before actions
+                 input.remove(); // Remove the input
+                 renderTasks(); // Re-render to ensure state consistency
              }
         });
     }
 
     // --- Day Completion, Reports, and Leveling ---
 
+    // Function to finalize the day completion process (called after confirm or force-complete)
     function finalizeDayCompletion() {
          if (isDayCompleteState) return;
 
@@ -931,30 +989,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTasksCount = tasks.length;
         const isGameWon = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
-         isDayCompleteState = true;
-         saveState();
+         isDayCompleteState = true; // Mark day as complete
+         // Win check happens *before* saving state, so save includes final gameWinState
+         saveState(); // Save completed state and tasks (profile already saved if leveled up)
 
+         // Play victory sound ONLY if the game was won upon completion
          if (isGameWon) {
-             levelUp();
-             playSound(victorySound); // Play victory sound here on win
-         } else {
-              saveState(); // Ensure state is saved even without level up
+             // Level up logic is already handled by toggleTaskCompletion/checkLevelUp
+             // and victory sound is played in levelUp or checkLevelUp if a level was gained.
+             // If no level was gained but the game was won, play victory sound here.
+             // This might require tracking if a level was *just* gained.
+             // Simpler: Play victory sound here if isGameWon is true upon finalizing.
+             // Ensure sound isn't played multiple times (e.g. both here and in levelUp)
+             // Let's play victory sound *only* in `levelUp` now, as game completion often implies level progress.
+             // If a win should play a sound *even without* leveling, play it here but add a check.
+             // For now, stick to sound only on levelUp.
          }
 
-         setDayCompletionStyling(); // Apply UI blocking, show report
-         // showMissionReport is called by setDayCompletionStyling
+         setDayCompletionStyling(); // Apply UI blocking, show report (will call showMissionReport)
     }
 
-     function completeDay() {
-        console.log("Attempting to complete day...");
-        if (isDayCompleteState) {
-            console.log("Day already complete.");
-            return;
-        }
+     // Trigger day completion check
+    function completeDay() {
+        if (isDayCompleteState) return;
 
         const completedTasksCount = tasks.filter(task => task.completed).length;
         const totalTasksCount = tasks.length;
-        const allDone = totalTasksCount > 0 && completedTasksCount === totalTasksCount; // Must have tasks AND all done
+        // Day can be completed if there are tasks and all are done OR if user forces with incomplete tasks
+        const allDone = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
         const incompleteTasks = tasks.filter(task => !task.completed);
 
 
@@ -966,19 +1028,19 @@ document.addEventListener('DOMContentLoaded', () => {
                  newTaskInput.placeholder = 'Enter quest details...';
              }, { once: true });
              newTaskInput.focus();
-             console.log("Cannot complete day with no tasks.");
              return;
          }
 
          if (!allDone) {
-             console.log(`Incomplete tasks remaining: ${incompleteTasks.length}. Showing dialog.`);
+             // Show incomplete tasks dialog if not all tasks are done
              showIncompleteTasksDialog(incompleteTasks);
          } else {
-             console.log("All tasks complete. Finalizing day directly.");
+             // All tasks done, finalize day directly
              finalizeDayCompletion();
          }
     }
 
+     // Show the incomplete tasks dialog
      function showIncompleteTasksDialog(incompleteTasks) {
          incompleteDialogTitle.textContent = currentGame.name;
          incompleteDialogMessage.textContent = currentGame.incompleteMessage || "You still have quests to finish.";
@@ -993,13 +1055,13 @@ document.addEventListener('DOMContentLoaded', () => {
          incompleteDialogOverlay.classList.remove('hidden');
      }
 
+     // Hide the incomplete tasks dialog
      function closeIncompleteTasksDialog() {
          incompleteDialogOverlay.classList.add('hidden');
      }
 
 
     function showMissionReport() {
-        console.log("Showing mission report...");
          const completedTasks = tasks.filter(task => task.completed).length;
          const totalTasks = tasks.length;
          const gameWon = totalTasks > 0 && completedTasks === totalTasks;
@@ -1007,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
          reportDate.textContent = `Date: ${new Date().toLocaleDateString()}`;
          reportSummary.textContent = `Quests Attempted: ${totalTasks} | Quests Completed: ${completedTasks}`;
 
-         reportTaskList.innerHTML = '';
+         reportTaskList.innerHTML = ''; // Clear previous list
          if (completedTasks === 0) {
               reportTaskList.innerHTML = '<li>None completed.</li>';
          } else {
@@ -1019,50 +1081,40 @@ document.addEventListener('DOMContentLoaded', () => {
          }
 
          reportGameStatus.textContent = `Daily Challenge (${currentGame.name}): ${gameWon ? 'SUCCESSFUL!' : 'Incomplete'}`;
-         reportGameStatus.classList.toggle('is-success', gameWon);
+         reportGameStatus.classList.toggle('is-success', gameWon); // Apply success styling if won
 
          missionReportModal.classList.remove('hidden');
-         console.log("Mission report displayed.");
      }
 
 
     function closeMissionReport() {
-        console.log("Closing mission report.");
         missionReportModal.classList.add('hidden');
     }
 
     // Clear all tasks for a new day and reset state
+    // auto: boolean - true if called automatically on new day load, false if user clicked button
     function startNewDay(auto = false) {
-        console.log(`Starting new day (auto: ${auto})...`);
         // If not auto-started, confirm if there are unfinished tasks and the day wasn't completed
         if (!auto && !isDayCompleteState && tasks.length > 0 && tasks.filter(t => !t.completed).length > 0) {
             // Using NES dialogs would replace this confirm
             if (!confirm('Start a fresh day? Your unfinished quests will be lost forever.')) {
-                 console.log("Start new day cancelled by user.");
                  return; // User cancelled
              }
-             console.log("User confirmed starting new day with unfinished tasks.");
-        } else if (!auto && isDayCompleteState) {
-            console.log("User clicked Start New Day after completion.");
-            // No confirmation needed if day was already complete.
-        } else if (!auto && tasks.length === 0) {
-             console.log("User clicked Start New Day with no tasks.");
-              // No confirmation needed if no tasks.
         }
 
+        isDayCompleteState = false; // Reset day completion state
+        tasks = []; // Clear tasks
+        gameWinState = false; // Reset win state
 
-        isDayCompleteState = false;
-        tasks = [];
-        gameWinState = false;
-
-        saveState();
+        saveState(); // Save cleared tasks and completion state
 
         // Determine a NEW game for the new day (based on the new date)
-        determineGame(); // This function also saves the new daily game selection
+        determineGame(); // This function saves the new daily game selection automatically
 
-        renderTasks(); // Render empty lists and initial game state
+        // Render empty lists and initial game state
+        renderTasks();
 
-        // Reset specific game visual styles that might persist from winning/previous state
+        // Reset specific game visual styles that might persist
         gameVisual.style.transform = 'scale(1)';
         gameVisual.style.opacity = 1;
         gameVisual.style.filter = 'none';
@@ -1072,36 +1124,30 @@ document.addEventListener('DOMContentLoaded', () => {
          if (crystal) { crystal.style.transform = ''; crystal.style.filter = ''; }
 
 
-        missionReportModal.classList.add('hidden');
-        incompleteDialogOverlay.classList.add('hidden');
+        missionReportModal.classList.add('hidden'); // Ensure report is hidden
+        incompleteDialogOverlay.classList.add('hidden'); // Ensure incomplete dialog is hidden
 
         if (!isDayCompleteState) {
-             newTaskInput.focus();
+             newTaskInput.focus(); // Focus input on start if day is not complete
          }
-        console.log("New day started.");
     }
 
-    // Level Up function
-    function levelUp() {
-         profile.level++;
-         console.log(`${profile.name} Leveled up to Lv. ${profile.level}!`);
-         renderProfile();
-         // saveState() is called by finalizeDayCompletion after levelUp
-     }
 
     // --- Profile Editing ---
     function populateIconSelection() {
-        profileIconSelection.innerHTML = '';
+        profileIconSelection.innerHTML = ''; // Clear existing icons
         PROFILE_ICONS.forEach(icon => {
             const span = document.createElement('span');
             span.classList.add('icon-option');
             span.textContent = icon;
-            span.setAttribute('data-icon', icon);
+            span.setAttribute('data-icon', icon); // Store icon value
             if (icon === profile.icon) {
                 span.classList.add('selected');
             }
             span.addEventListener('click', () => {
+                // Deselect current
                 profileIconSelection.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                // Select clicked
                 span.classList.add('selected');
             });
             profileIconSelection.appendChild(span);
@@ -1109,51 +1155,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showProfileEditModal() {
+         // Populate modal fields with current profile data
          profileNameInput.value = profile.name;
-         populateIconSelection();
-         profileEditModal.classList.remove('hidden');
-         profileNameInput.focus();
-         profileNameInput.select();
+         populateIconSelection(); // Populate and select current icon
+         profileEditModal.classList.remove('hidden'); // Show modal
+         profileNameInput.focus(); // Focus input
+         profileNameInput.select(); // Select text on focus for easy replacement
      }
 
     function closeProfileEditModal() {
-         profileEditModal.classList.add('hidden');
+         profileEditModal.classList.add('hidden'); // Hide modal
      }
 
     function saveProfileEdit() {
          const newName = profileNameInput.value.trim();
          const selectedIconElement = profileIconSelection.querySelector('.icon-option.selected');
-         const newIcon = selectedIconElement ? selectedIconElement.getAttribute('data-icon') : profile.icon;
+         const newIcon = selectedIconElement ? selectedIconElement.getAttribute('data-icon') : profile.icon; // Keep old icon if none selected
 
-         profile.name = newName || profile.name;
+         // Update profile state
+         profile.name = newName || profile.name; // Keep old name if empty
          profile.icon = newIcon;
 
-         saveState();
-         renderProfile();
+         saveState(); // Save the updated profile
+         renderProfile(); // Update the display in the header
          closeProfileEditModal();
      }
 
 
      // Helper to play sound safely
      function playSound(audioElement) {
-         if (audioElement && typeof audioElement.play === 'function') {
-             audioElement.currentTime = 0;
+         if (audioElement && typeof audioElement.play === 'function' && audioElement.readyState >= 2) {
+             audioElement.currentTime = 0; // Rewind to start
              audioElement.play().catch(error => {
+                 // Autoplay was prevented - common issue. Log but don't break.
                  console.warn("Audio playback prevented:", error);
              });
+         } else if (audioElement && audioElement.readyState < 2) {
+             console.warn("Audio not ready for playback.");
+         } else {
+              console.warn("Invalid audio element.");
          }
      }
 
     // --- Event Listeners ---
     addTaskBtn.addEventListener('click', addTask);
     newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
-
-    // Add the event listener AFTER the dropdown is populated and the initial game is determined
     gameSelectDropdown.addEventListener('change', handleGameChange);
-
     completeDayBtn.addEventListener('click', completeDay);
     newDayBtn.addEventListener('click', () => startNewDay(false)); // Explicitly not automatic start
     closeReportBtn.addEventListener('click', closeMissionReport);
+    // Close modal if clicking overlay background
     missionReportModal.addEventListener('click', (e) => {
          if (e.target === missionReportModal) {
              closeMissionReport();
@@ -1163,9 +1214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Incomplete Dialog Listeners
     cancelCompleteBtn.addEventListener('click', closeIncompleteTasksDialog);
     forceCompleteBtn.addEventListener('click', () => {
-         closeIncompleteTasksDialog();
-         finalizeDayCompletion();
+         closeIncompleteTasksDialog(); // Close dialog first
+         finalizeDayCompletion(); // Then proceed with completing the day
      });
+     // Close incomplete dialog if clicking overlay background
      incompleteDialogOverlay.addEventListener('click', (e) => {
           if (e.target === incompleteDialogOverlay) {
               closeIncompleteTasksDialog();
@@ -1176,6 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editProfileBtn.addEventListener('click', showProfileEditModal);
     cancelProfileEditBtn.addEventListener('click', closeProfileEditModal);
     saveProfileBtn.addEventListener('click', saveProfileEdit);
+    // Close profile edit modal if clicking overlay background
     profileEditModal.addEventListener('click', (e) => {
          if (e.target === profileEditModal) {
              closeProfileEditModal();
@@ -1185,7 +1238,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load ---
     function init() {
-        console.log("Initializing app...");
         // Initial UI state setup
          gameTitle.textContent = '[Game Title Loading...]';
          gameVisual.innerHTML = '[Game Visual Loading...]';
@@ -1209,18 +1261,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Note: If autoNewDayTriggered was true, startNewDay already called determineGame
 
-        renderProfile();
+        renderProfile(); // Render profile display based on loaded state
 
         // Render tasks and game area based on the determined initial state
-        renderTasks();
+        renderTasks(); // This also calls renderGameArea and setDayCompletionStyling
 
-        startDateTimeInterval();
+        startDateTimeInterval(); // Start the clock
 
         if (!isDayCompleteState) {
-             newTaskInput.focus();
+             newTaskInput.focus(); // Focus input on start if day is not complete
          }
-
-        console.log("App initialization complete.");
     }
 
     // --- Start the application ---
