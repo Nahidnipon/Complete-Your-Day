@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportSummary = document.getElementById('report-summary');
     const reportTaskList = document.getElementById('report-task-list');
     const reportGameStatus = document.getElementById('report-game-status');
+    const reportStreakStatus = document.getElementById('report-streak-status'); // Get the new streak status element
     const closeReportBtn = document.getElementById('close-report-btn');
     const mainContainer = document.querySelector('.container');
 
@@ -34,29 +35,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileSection = document.querySelector('.profile-section');
     const profileIconSpan = document.getElementById('profile-icon');
     const playerNameSpan = document.getElementById('player-name');
-    const playerLevelSpan = document.getElementById('player-level');
-    const playerXpSpan = document.getElementById('player-xp'); // Added XP span
+    // const playerLevelSpan = document.getElementById('player-level'); // Reused for streak
+    const playerStreakSpan = document.getElementById('player-level'); // Use this variable name instead
+    // const playerXpSpan = document.getElementById('player-xp'); // Removed XP span
     const editProfileBtn = document.getElementById('edit-profile-btn');
 
     // New Modal Elements (Profile Edit)
     const profileEditModal = document.getElementById('profile-edit-modal');
     const profileNameInput = document.getElementById('profile-name-input');
     const profileIconSelection = document.getElementById('profile-icon-selection');
+    const collectedItemsList = document.getElementById('collected-items-list'); // New: Collected items list in modal
+    const noItemsMessage = document.getElementById('no-items-message'); // New: No items message
     const cancelProfileEditBtn = document.getElementById('cancel-profile-edit-btn');
     const saveProfileBtn = document.getElementById('save-profile-btn');
 
 
     // --- Audio ---
-    let completeSound, victorySound;
+    let completeSound, victorySound; // victorySound will be reused for streak rewards
     try {
-        // Ensure audio files exist in an 'audio' folder at root level
         completeSound = new Audio('audio/complete.wav');
-        victorySound = new Audio('audio/victory.wav');
+        victorySound = new Audio('audio/victory.wav'); // Reused for rewards
         completeSound.preload = 'auto';
         victorySound.preload = 'auto';
-        // Attempt to unlock audio context on first user interaction
         document.body.addEventListener('click', () => {
-             // Check readyState to avoid errors if file loading fails
              if (completeSound.readyState >= 2) {
                  completeSound.volume = 0;
                  completeSound.play().then(() => completeSound.volume = 1).catch(e => console.warn("Complete sound unlock failed:", e));
@@ -69,15 +70,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (e) {
         console.error("Could not load audio files.", e);
-        // Create dummy objects to prevent errors later if audio fails
         completeSound = { play: () => {}, paused: true, readyState: 0, volume: 1 };
         victorySound = { play: () => {}, paused: true, readyState: 0, volume: 1 };
     }
 
 
-    // --- Game Definitions & XP ---
-    const XP_PER_TASK = 50; // Amount of XP gained per completed task
-    const XP_NEEDED_PER_LEVEL = (level) => level * 100; // Formula for XP needed for next level
+    // --- Game Definitions & Rewards ---
+
+    // Define rewards based on streak count
+    const REWARDS = [
+        { streak: 1, item: '✨ First Quest Completed!' },
+        { streak: 3, item: '🏆 Bronze Trophy' },
+        { streak: 5, item: '🗡️ Rusty Sword' },
+        { streak: 7, item: '🛡️ Wooden Shield' },
+        { streak: 10, item: '💎 Small Gem' },
+        { streak: 15, item: '👑 Iron Crown' },
+        { streak: 20, item: '🔮 Mystic Orb' },
+        { streak: 25, item: '🐉 Dragon Scale' },
+        { streak: 30, item: '🌟 Hero\'s Star' },
+         // Add more rewards for higher streaks
+    ];
+
 
     const GAME_THEMES = [
         {
@@ -99,10 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
             incompleteMessage: "The Dragon still breathes fire! Complete your remaining quests to defeat it."
         },
         {
-            id: 'mountain', name: "Mountain Climb", progressType: 'steps', stepChar: '🧗', // Add custom step character
+            id: 'mountain', name: "Mountain Climb", progressType: 'steps', stepChar: '🧗',
             victoryText: "PEAK CONQUERED! You reached the summit!",
             visualStages: [
-                '⛰️', '⛰️', '⛰️', '⛰️', '🏔️' // Simpler stages for steps
+                '⛰️', '⛰️', '⛰️', '⛰️', '🏔️'
             ],
             defeatedVisual: '🏆',
             stageDescriptions: [
@@ -116,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "You haven't reached the top yet! Complete your remaining quests to conquer the peak."
         },
         {
-            id: 'castle', name: "Build the Castle", progressType: 'build', pieces: ['🧱','🧱','🏛️','🧱','🏰'], // Custom build pieces
+            id: 'castle', name: "Build the Castle", progressType: 'build', pieces: ['🧱','🧱','🏛️','🧱','🏰'],
             victoryText: "FORTIFIED! Your castle stands strong!",
              visualStages: [
                  ' foundations ',
@@ -137,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The castle is unfinished! Complete your remaining quests to secure the fort."
         },
         {
-            id: 'map', name: "Uncover Treasure", progressType: 'reveal', item: '<span class="nes-icon coin is-small"></span>', // Custom reveal item
+            id: 'map', name: "Uncover Treasure", progressType: 'reveal', item: '<span class="nes-icon coin is-small"></span>',
             victoryText: "TREASURE FOUND! X marks the spot!",
             visualStages: [
                 '❓🗺️❓',
@@ -162,10 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
              victoryText: "ESCAPED! Freedom at last!",
              visualStages: [
                  '🔒🧱',
-                 '🧱', // Stage 1
-                 '🧱', // Stage 2
-                 '🚧', // Stage 3
-                 '🌳'  // Stage 4
+                 '🧱',
+                 '🧱',
+                 '🚧',
+                 '🌳'
              ],
              defeatedVisual: '🌅',
              stageDescriptions: [
@@ -182,11 +195,11 @@ document.addEventListener('DOMContentLoaded', () => {
              id: 'voyage', name: "Cosmic Voyage", progressType: 'steps', stepChar: '🚀',
              victoryText: "DESTINATION REACHED! A successful journey!",
              visualStages: [
-                 '🌌', // Stage 0
-                 '🌌', // Stage 1
-                 '🪐', // Stage 2
-                 '🪐', // Stage 3
-                 '🪐'  // Stage 4
+                 '🌌',
+                 '🌌',
+                 '🪐',
+                 '🪐',
+                 '🪐'
              ],
              defeatedVisual: '🪐🏠',
              stageDescriptions: [
@@ -200,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The journey is unfinished! Complete your remaining quests to reach the destination."
         },
         {
-             id: 'elixir', name: "Brew the Elixir", progressType: 'fill', item: '💧', // Fill item
+             id: 'elixir', name: "Brew the Elixir", progressType: 'fill', item: '💧',
              victoryText: "POTION BREWED! Magical power awaits!",
              visualStages: [
                  '🧪',
@@ -223,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The potion is incomplete! Complete your remaining quests to finish brewing it."
         },
          {
-             id: 'bean', name: "Grow the Magic Bean", progressType: 'build', pieces: ['🌱','🌿','🌲','🌳','☁️'], // Custom pieces
+             id: 'bean', name: "Grow the Magic Bean", progressType: 'build', pieces: ['🌱','🌿','🌲','🌳','☁️'],
              victoryText: "IT'S HUGE! The beanstalk reaches the clouds!",
              visualStages: [
                  '🌰',
@@ -246,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The beanstalk is still growing! Complete your remaining quests to reach the top."
          },
          {
-             id: 'crystal', name: "Charge the Crystal", progressType: 'charge', item: '⚡', // Charge item
+             id: 'crystal', name: "Charge the Crystal", progressType: 'charge', item: '⚡',
              victoryText: "FULLY CHARGED! The crystal glows with power!",
              visualStages: [
                  '💎',
@@ -269,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
              incompleteMessage: "The crystal needs more energy! Complete your remaining quests to charge it."
          },
          {
-             id: 'fort', name: "Defend the Fort", progressType: 'build', pieces: ['🧱','🛡️','🏹','🔥','👑'], // Custom pieces
+             id: 'fort', name: "Defend the Fort", progressType: 'build', pieces: ['🧱','🛡️','🏹','🔥','👑'],
              victoryText: "SECURE! The fort is impenetrable!",
              visualStages: [
                  '🏕️',
@@ -302,15 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let dateTimeInterval = null;
     let isDayCompleteState = false;
     let gameWinState = false;
-    // Added xp to profile state
-    let profile = { name: 'Adventurer', icon: '👤', level: 1, xp: 0 };
+    // Updated profile state: streak and collectedItems
+    let profile = { name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] };
 
-    // Updated localStorage keys for potential state structure changes
+    // Updated localStorage keys for state structure changes
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v6',
-        GAME_INFO: 'vintageGameInfo_v6',
-        DAY_COMPLETE: 'vintageDayComplete_v6',
-        PROFILE: 'vintageProfile_v2' // Updated profile version
+        TASKS: 'vintageTasks_v7', // Increment version
+        GAME_INFO: 'vintageGameInfo_v7', // Increment version
+        DAY_COMPLETE: 'vintageDayComplete_v7', // Increment version
+        PROFILE: 'vintageProfile_v3' // Increment profile version
     };
 
     // --- Functions ---
@@ -328,12 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
              dateTimeInterval = setInterval(updateDateTime, 1000);
          }
      }
-     function stopDateTimeInterval() {
-         if (dateTimeInterval) {
-             clearInterval(dateTimeInterval);
-             dateTimeInterval = null;
-         }
-     }
+     // function stopDateTimeInterval() { ... } // Not strictly needed in this app lifecycle
+
 
     function getCurrentDateString() {
         const today = new Date();
@@ -424,8 +433,14 @@ document.addEventListener('DOMContentLoaded', () => {
         isDayCompleteState = storedDayComplete === 'true';
 
         const storedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
-        // Merge default profile with loaded state, ensuring new properties like xp are included if they didn't exist before
-        profile = { ...{ name: 'Adventurer', icon: '👤', level: 1, xp: 0 }, ...(storedProfile ? JSON.parse(storedProfile) : {}) };
+        // Merge default profile with loaded state, ensuring new properties (streak, collectedItems) are included
+        // Provide default values for streak and collectedItems if they don't exist
+        profile = { ...{ name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] }, ...(storedProfile ? JSON.parse(storedProfile) : {}) };
+
+        // Ensure collectedItems is always an array (handle potential loading issues)
+        if (!Array.isArray(profile.collectedItems)) {
+            profile.collectedItems = [];
+        }
 
         // Check if it's a new day since the last visit *and* the day was completed
         const storedGameInfo = JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME_INFO));
@@ -433,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const todayStr = getCurrentDateString();
 
         if (isDayCompleteState && lastVisitedDate && lastVisitedDate !== todayStr) {
-             // Automatic new day start
+             // Automatic new day start if previous day was completed
              startNewDay(true);
              return true; // Indicate automatic new day started
         }
@@ -449,14 +464,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // saveGameSelection is called separately when game is determined/changed
     }
 
-     // Render Profile Section
+     // Render Profile Section (Updated for Streak)
      function renderProfile() {
          profileIconSpan.textContent = profile.icon;
          playerNameSpan.textContent = profile.name;
-         playerLevelSpan.textContent = `Lv. ${profile.level}`;
-         // Display XP and XP needed for the next level
-         const xpNeeded = XP_NEEDED_PER_LEVEL(profile.level);
-         playerXpSpan.textContent = `XP: ${profile.xp}/${xpNeeded}`;
+         // Display Streak
+         playerStreakSpan.textContent = `Streak: ${profile.streak}`;
+         // Add NES.css styling class based on streak value
+         playerStreakSpan.classList.remove('is-success', 'is-error'); // Remove previous classes
+         if (profile.streak > 0) {
+             playerStreakSpan.classList.add('is-success');
+         } else {
+              playerStreakSpan.classList.add('is-error');
+         }
+
          welcomeMessage.textContent = `Welcome ${profile.name}!`;
      }
 
@@ -481,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
               victoryMessage.textContent = currentGame.victoryText || "Quest Complete!";
               victoryMessage.classList.remove('hidden');
               victoryMessage.classList.add('is-success');
-              // Sound is played when finalizing day if won
+              // Sound is played when finalizing day if won (handles rewards too)
          } else {
               victoryMessage.classList.add('hidden');
               victoryMessage.classList.remove('is-success');
@@ -580,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                   stepContent = '🏁'; // Default win marker
                                  if (currentGame.id === 'mountain') stepContent = '🚩'; // Specific mountain flag
                                  if (currentGame.id === 'escape') stepContent = '🌅'; // Specific escape dawn
-                                 if (currentGame.id === 'voyage') stepContent = '🏠'; // Specific voyage planet house? or trophy?
+                                 if (currentGame.id === 'voyage') stepContent = '🏠'; // Specific voyage planet house? Or trophy?
                              }
                             stepsHTML += `<div class="${stepClass}">${stepContent ? `<span>${stepContent}</span>` : ''}</div>`;
                         }
@@ -604,14 +625,14 @@ document.addEventListener('DOMContentLoaded', () => {
                          // Use a simple text representation of fill level in progress area
                          const fillItem = currentGame.item || '💧';
                          // Array(completedTasks + 1).join('') creates a string with `completedTasks` items.
-                         gameProgressArea.innerHTML = `<span class="fill-visual">${Array(completedTasks + 1).join(fillItem)}</span>`;
+                         gameProgressArea.innerHTML = `<span class="fill-visual">${Array(completedTasks).join(fillItem)}</span>`; // Only show completed count
                          break;
 
                      case 'charge':
                          // Show charge symbols in progress area
                          const chargeItem = currentGame.item || '⚡';
-                          // Array(completedTasks + 1).join('') creates a string with `completedTasks` items.
-                         gameProgressArea.innerHTML = `<span class="charge-indicator">${Array(completedTasks + 1).join(chargeItem)}</span>`;
+                         // Array(completedTasks + 1).join('') creates a string with `completedTasks` items.
+                         gameProgressArea.innerHTML = `<span class="charge-indicator">${Array(completedTasks).join(chargeItem)}</span>`; // Only show completed count
                          break;
 
                     case 'reveal':
@@ -741,6 +762,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkbox = document.createElement('div'); // Using a div to style as a box
         checkbox.classList.add('task-checkbox');
         checkbox.setAttribute('role', 'presentation'); // It's part of the checkbox role on the LI
+         // Add disabled state to the checkbox div based on day completion
+         if (isDayCompleteState || task.completed) {
+              checkbox.classList.add('disabled'); // Add a class for CSS styling
+         }
 
 
         // Task Text
@@ -789,17 +814,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add click listener to the checkbox area only for toggling
         checkbox.addEventListener('click', (e) => {
              e.stopPropagation(); // Prevent LI click event
-             if (!isDayCompleteState && !task.completed) { // Only allow toggle if day isn't complete AND task isn't already complete
+             // Check both day state AND if task is already completed
+             if (!isDayCompleteState && !task.completed) {
                  toggleTaskCompletion(task.id);
              }
         });
-         // Also allow clicking the text to toggle if desired (optional, maybe conflicts with editing)
+         // Optional: Allow clicking the text to toggle IF not in edit mode and day not complete
          // textSpan.addEventListener('click', (e) => {
          //      e.stopPropagation();
-         //       if (!isDayCompleteState && !task.completed) {
+         //       // Check if it's the text span itself (not replaced by input) and if day not complete
+         //       if (!li.querySelector('.edit-input') && !isDayCompleteState && !task.completed) {
          //           toggleTaskCompletion(task.id);
          //       }
-         // });
+         //  });
 
 
         return li;
@@ -826,27 +853,25 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks(); // Re-render lists and update game area
     }
 
-    // Toggle task completion status
+    // Toggle task completion status (Removed XP logic)
     function toggleTaskCompletion(id) {
+        // Only allow toggling if day is NOT complete
         if (isDayCompleteState) return;
 
         let taskCompletedNow = false;
         tasks = tasks.map(task => {
             if (task.id === id) {
-                taskCompletedNow = !task.completed; // Determine if it's becoming completed
-                return { ...task, completed: taskCompletedNow };
+                // Only toggle if it's currently NOT completed
+                if (!task.completed) {
+                    taskCompletedNow = true; // Mark that a task *just* became completed
+                    return { ...task, completed: true };
+                }
             }
             return task;
         });
 
+        // If a task was successfully marked completed in this action
         if (taskCompletedNow) {
-             // Add XP for completing a task
-             profile.xp += XP_PER_TASK;
-             console.log(`Gained ${XP_PER_TASK} XP. Total XP: ${profile.xp}`);
-             // Check for level up after adding XP
-             checkLevelUp();
-
-             // Play sound and add animation class
              playSound(completeSound);
              const li = document.querySelector(`li[data-id='${id}']`);
              if(li) {
@@ -858,45 +883,12 @@ document.addEventListener('DOMContentLoaded', () => {
                  renderTasks();
              }
         } else {
-            // If un-completing, remove XP? (Optional based on game design)
-            // For simplicity, let's not remove XP on un-complete for now.
-            // Just re-render immediately
-            renderTasks();
+            // If the task was already completed (clicked again) or un-completed (if allowed, which it isn't currently)
+            // or if the day was complete (checked at function start), just re-render immediately to reflect current state.
+             renderTasks();
         }
-        // saveState is called by renderTasks, which happens after task update and potential level up
+        // saveState is called by renderTasks
     }
-
-     // Check if player should level up after gaining XP
-     function checkLevelUp() {
-         let leveledUp = false;
-         let xpNeeded = XP_NEEDED_PER_LEVEL(profile.level);
-         while (profile.xp >= xpNeeded) {
-             profile.xp -= xpNeeded; // Deduct XP needed for this level
-             levelUp(); // Increment level and update display
-             xpNeeded = XP_NEEDED_PER_LEVEL(profile.level); // Calculate XP for the *next* level
-             leveledUp = true;
-         }
-         if (leveledUp) {
-              // After potential multiple level ups, ensure profile display is updated once
-              renderProfile();
-              // saveState is called by renderTasks, which is called by toggleTaskCompletion
-              // or could be called here explicitly if no re-render follows immediately
-         } else {
-              // If no level up occurred, just update XP display
-              renderProfile();
-         }
-         // Note: saveState is handled by renderTasks which calls checkLevelUp
-     }
-
-    // Increment player level
-    function levelUp() {
-         profile.level++;
-         console.log(`${profile.name} Leveled up to Lv. ${profile.level}!`);
-         // Play a level-up specific sound if you have one, or reuse victory sound
-         playSound(victorySound); // Using victory sound for now
-         // renderProfile() is called by checkLevelUp after the loop
-         // saveState() is called by renderTasks
-     }
 
 
     // Delete a task
@@ -923,7 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!task || task.completed) return; // Only edit incomplete tasks
 
         const textSpan = listItem.querySelector('.task-text');
-        if (!textSpan) return; // Safety check
+        if (!textSpan) return;
 
         const currentText = task.text;
         const input = document.createElement('input');
@@ -935,10 +927,10 @@ document.addEventListener('DOMContentLoaded', () => {
         input.style.marginBottom = '0';
         input.style.boxSizing = 'border-box';
 
-        // Replace the span with the input, but keep other elements (checkbox, actions)
+        // Replace the text span, keeping other elements (checkbox, actions)
         const checkbox = listItem.querySelector('.task-checkbox');
         const actionsDiv = listItem.querySelector('.task-actions');
-        if (!checkbox || !actionsDiv) return; // Need other elements to be present
+        if (!checkbox || !actionsDiv) return;
 
         listItem.insertBefore(input, actionsDiv); // Insert input before actions
         textSpan.remove(); // Remove the original text span
@@ -979,32 +971,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Day Completion, Reports, and Leveling ---
+    // --- Day Completion, Reports, and Streak/Rewards ---
 
     // Function to finalize the day completion process (called after confirm or force-complete)
     function finalizeDayCompletion() {
-         if (isDayCompleteState) return;
+         if (isDayCompleteState) return; // Should not happen if called correctly
 
         const completedTasksCount = tasks.filter(task => task.completed).length;
         const totalTasksCount = tasks.length;
         const isGameWon = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
-         isDayCompleteState = true; // Mark day as complete
-         // Win check happens *before* saving state, so save includes final gameWinState
-         saveState(); // Save completed state and tasks (profile already saved if leveled up)
+        let streakStatusMessage = ''; // Message for the report
 
-         // Play victory sound ONLY if the game was won upon completion
          if (isGameWon) {
-             // Level up logic is already handled by toggleTaskCompletion/checkLevelUp
-             // and victory sound is played in levelUp or checkLevelUp if a level was gained.
-             // If no level was gained but the game was won, play victory sound here.
-             // This might require tracking if a level was *just* gained.
-             // Simpler: Play victory sound here if isGameWon is true upon finalizing.
-             // Ensure sound isn't played multiple times (e.g. both here and in levelUp)
-             // Let's play victory sound *only* in `levelUp` now, as game completion often implies level progress.
-             // If a win should play a sound *even without* leveling, play it here but add a check.
-             // For now, stick to sound only on levelUp.
+             profile.streak++; // Increment streak if the daily quest was won
+             streakStatusMessage = `Streak maintained! You are on a ${profile.streak} day streak!`;
+
+             // Check for rewards at the new streak count
+             const earnedReward = REWARDS.find(reward => reward.streak === profile.streak);
+
+             if (earnedReward) {
+                 // Check if the item has already been collected
+                 if (!profile.collectedItems.includes(earnedReward.item)) {
+                     profile.collectedItems.push(earnedReward.item); // Add item to inventory
+                     streakStatusMessage += `\nReward unlocked: ${earnedReward.item}!`; // Add reward message
+                     playSound(victorySound); // Play a sound for the reward/streak
+                 } else {
+                      streakStatusMessage += ` (You already collected the reward for streak ${profile.streak})`;
+                 }
+             } else {
+                  // Play victory sound even if no specific item reward at this streak
+                  playSound(victorySound);
+             }
+
+         } else {
+             // Streak is broken if the daily quest was NOT won
+             if (profile.streak > 0) {
+                 streakStatusMessage = `Streak broken! You failed the daily quest. Your streak of ${profile.streak} days is reset.`;
+             } else {
+                  streakStatusMessage = "Daily quest incomplete. Your streak remains 0.";
+             }
+             profile.streak = 0; // Reset streak
          }
+
+         isDayCompleteState = true; // Mark day as complete
+         // Save the updated profile (with new streak/items) and day state
+         saveState();
+         renderProfile(); // Update header display
+
+         // Set the streak status message for the report *before* showing the report modal
+         reportStreakStatus.textContent = streakStatusMessage;
+         reportStreakStatus.classList.toggle('is-success', isGameWon);
+         reportStreakStatus.classList.toggle('is-error', !isGameWon);
+
 
          setDayCompletionStyling(); // Apply UI blocking, show report (will call showMissionReport)
     }
@@ -1083,6 +1102,9 @@ document.addEventListener('DOMContentLoaded', () => {
          reportGameStatus.textContent = `Daily Challenge (${currentGame.name}): ${gameWon ? 'SUCCESSFUL!' : 'Incomplete'}`;
          reportGameStatus.classList.toggle('is-success', gameWon); // Apply success styling if won
 
+         // Streak status message and styling are already set in finalizeDayCompletion
+         // reportStreakStatus.textContent and its classes are updated there.
+
          missionReportModal.classList.remove('hidden');
      }
 
@@ -1091,22 +1113,46 @@ document.addEventListener('DOMContentLoaded', () => {
         missionReportModal.classList.add('hidden');
     }
 
-    // Clear all tasks for a new day and reset state
+    // Clear all tasks for a new day and reset task/game state
+    // Streak reset logic happens in finalizeDayCompletion based on winning the quest
     // auto: boolean - true if called automatically on new day load, false if user clicked button
     function startNewDay(auto = false) {
         // If not auto-started, confirm if there are unfinished tasks and the day wasn't completed
         if (!auto && !isDayCompleteState && tasks.length > 0 && tasks.filter(t => !t.completed).length > 0) {
-            // Using NES dialogs would replace this confirm
-            if (!confirm('Start a fresh day? Your unfinished quests will be lost forever.')) {
+            // Warning: Starting a new day will break your streak if the current day's quest wasn't won!
+             if (!confirm('Start a fresh day? Your unfinished quests will be lost forever. (Warning: This will reset your streak if you did not complete today\'s quest!)')) {
                  return; // User cancelled
              }
+             // If user confirms, the streak reset will happen when finalizeDayCompletion is called implicitly
+             // by the end of the day (or if they manually completed with incomplete tasks).
+             // However, if they click "Start New Day" *before* completing the day, the streak should also reset.
+             // Let's ensure the streak logic is handled *only* when the day is marked complete (via finalizeDayCompletion),
+             // so the "Complete Day" button/flow is the primary way to advance/reset the streak.
+             // Clicking "Start New Day" *before* completing the day effectively means the day's quest was failed.
+             // We need to decide if clicking "Start New Day" early resets the streak immediately,
+             // or if the streak only resets if you hit "Complete Day" and failed.
+             // The current design links streak to the daily quest outcome via finalizeDayCompletion.
+             // So, if a user clicks "Start New Day" with tasks still in ToDo, they effectively abandoned the quest.
+             // We should probably still finalize the *previous* day as a failure.
+             if (!isDayCompleteState) { // If day wasn't completed yet, finalize it as failed
+                  console.log("User started new day before completing the previous. Finalizing previous day as incomplete.");
+                  // Temporarily set tasks to reflect completion status for report/streak logic
+                   finalizeDayCompletion(); // This will reset the streak
+             }
+        } else if (!auto && isDayCompleteState) {
+            // User clicked Start New Day after completion. No confirmation needed.
+             console.log("User started new day after completing the previous.");
+        } else if (!auto && tasks.length === 0) {
+             // User clicked Start New Day with no tasks. No confirmation needed.
+             console.log("User started new day with no tasks.");
         }
+
 
         isDayCompleteState = false; // Reset day completion state
         tasks = []; // Clear tasks
         gameWinState = false; // Reset win state
 
-        saveState(); // Save cleared tasks and completion state
+        saveState(); // Save cleared tasks and completion state (profile already updated by finalizeDayCompletion if needed)
 
         // Determine a NEW game for the new day (based on the new date)
         determineGame(); // This function saves the new daily game selection automatically
@@ -1154,10 +1200,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Populate the Collected Items list in the modal
+    function populateCollectedItems() {
+        collectedItemsList.innerHTML = ''; // Clear list
+
+        if (profile.collectedItems.length === 0) {
+            noItemsMessage.classList.remove('hidden');
+             // Add a placeholder item if the list is empty and noItemsMessage is hidden (shouldn't happen with the hidden class check)
+             // collectedItemsList.innerHTML = '<li>(No items yet)</li>'; // Optional placeholder within the list
+        } else {
+             noItemsMessage.classList.add('hidden');
+            // Sort items alphabetically for consistent display
+            const sortedItems = [...profile.collectedItems].sort();
+            sortedItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                collectedItemsList.appendChild(li);
+            });
+        }
+    }
+
+
     function showProfileEditModal() {
          // Populate modal fields with current profile data
          profileNameInput.value = profile.name;
          populateIconSelection(); // Populate and select current icon
+         populateCollectedItems(); // Populate the collected items list
          profileEditModal.classList.remove('hidden'); // Show modal
          profileNameInput.focus(); // Focus input
          profileNameInput.select(); // Select text on focus for easy replacement
@@ -1202,7 +1270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
     gameSelectDropdown.addEventListener('change', handleGameChange);
     completeDayBtn.addEventListener('click', completeDay);
-    newDayBtn.addEventListener('click', () => startNewDay(false)); // Explicitly not automatic start
+    // Modified Start New Day listener to potentially finalize the previous day
+    newDayBtn.addEventListener('click', () => startNewDay(false));
     closeReportBtn.addEventListener('click', closeMissionReport);
     // Close modal if clicking overlay background
     missionReportModal.addEventListener('click', (e) => {
@@ -1247,6 +1316,9 @@ document.addEventListener('DOMContentLoaded', () => {
          missionReportModal.classList.add('hidden');
          incompleteDialogOverlay.classList.add('hidden');
          profileEditModal.classList.add('hidden');
+         // Hide the "no items" message initially until populateCollectedItems runs
+         noItemsMessage.classList.add('hidden');
+
 
         // Load state, this might trigger an automatic new day
         const autoNewDayTriggered = loadState();
