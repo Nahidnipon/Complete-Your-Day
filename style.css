@@ -3,29 +3,15 @@
 
 body {
     font-family: 'Press Start 2P', cursive;
-    background-color: #212529;
-    padding: 0; /* Remove padding */
-    margin: 0; /* Remove default margin */
-    color: #fff;
-    image-rendering: pixelated;
-    min-height: 100vh; /* Ensure body takes full height */
+    background-color: #212529; /* Dark background */
+    padding: 0;
+    margin: 0;
+    color: #fff; /* White text */
+    image-rendering: pixelated; /* Helps with pixel art fonts/icons */
+    min-height: 100vh;
     display: flex;
-    flex-direction: column; /* Stack header and main content */
-}
-
-/* Make main container full width */
-.container.nes-container.is-dark {
-    max-width: none; /* Override max-width */
-    width: 100%; /* Take full width */
-    margin: 0 auto; /* Keep centered horizontally if needed, but width: 100% does it */
-    border-radius: 0; /* Remove rounding for full width */
-    border: none; /* Remove outer border if desired for seamless look */
-    box-shadow: none; /* Remove outer shadow */
-    flex-grow: 1; /* Allow container to fill remaining vertical space */
-    display: flex; /* Use flexbox for internal layout */
-    flex-direction: column; /* Stack game and task sections vertically */
-    padding: 15px; /* Add some internal padding */
-    box-sizing: border-box; /* Include padding in width/height */
+    flex-direction: column;
+    align-items: center; /* Center content horizontally */
 }
 
 /* Header Styling */
@@ -34,82 +20,121 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
-    border-bottom: 4px solid #fff; /* NES style border */
-    width: 100%;
+    border-bottom: 4px solid #fff;
+    width: 100%; /* Keep header full width */
     box-sizing: border-box;
-    flex-shrink: 0; /* Prevent header from shrinking */
-    border-radius: 0 !important; /* Ensure sharp corners */
+    flex-shrink: 0;
+    border-radius: 0 !important;
+    margin-bottom: 20px; /* Add space below header */
 }
 .header-left, .header-right {
     font-size: 0.8em;
+    /* Optional: add slight text shadow for retro look */
+    text-shadow: 1px 1px #000;
+}
+
+/* Main Container - Authentic Width */
+.container.nes-container.is-dark {
+    /* Override full-width styles */
+    max-width: 800px; /* Set a maximum width for the NES feel */
+    width: 95%; /* Allow it to shrink on small screens */
+    margin: 0 auto 20px auto; /* Center horizontally, add space below */
+    border-radius: 10px; /* Keep the rounded corners */
+    border: 4px solid #fff; /* Keep the NES border */
+    box-shadow: 8px 8px 0 #fff; /* Keep the NES shadow */
+
+    /* Existing flexbox for internal layout */
+    display: flex;
+    flex-direction: column;
+    padding: 20px; /* Adjust internal padding */
+    box-sizing: border-box;
+    flex-grow: 1;
+    /* Ensure background is the dark color */
+    background-color: #212529;
 }
 
 /* Game Selection */
 .game-selection {
     margin-bottom: 20px;
-    text-align: center; /* Center the selection */
-    display: flex; /* Use flex for alignment */
+    text-align: center;
+    display: flex;
     justify-content: center;
     align-items: center;
     gap: 10px;
+    /* Add a simple border/background to frame it */
+    border: 2px solid #fff;
+    padding: 10px;
+    background-color: #3a3f44;
+    box-shadow: 4px 4px 0 #fff;
 }
 .game-selection label {
-     margin-bottom: 0; /* Align label properly */
+     margin-bottom: 0;
      font-size: 0.8em;
+     color: #fff; /* Ensure label is white */
 }
-.nes-select {
-    /* Minor adjustments if needed */
+.nes-select select {
+    font-family: 'Press Start 2P', cursive; /* Ensure font in select */
+    font-size: 0.8em;
+    background-color: #fff; /* White background for select */
+    color: #212529; /* Dark text for select */
 }
+
 
 /* Game Area */
 .game-area {
-    margin-bottom: 20px; /* Reduced margin */
+    margin-bottom: 20px;
     text-align: center;
-    background-color: #3a3f44;
-    border-color: #999;
-    padding: 15px; /* Adjust padding */
+    background-color: #3a3f44; /* Slightly lighter dark */
+    border-color: #fff; /* White border */
+    box-shadow: 4px 4px 0 #fff; /* White shadow */
+    padding: 15px;
+}
+.game-area h2 {
+     font-size: 1.2em; /* Make title slightly smaller */
+     margin-top: 0;
+     margin-bottom: 10px;
 }
 .game-visual-area {
     font-size: 3em;
     margin: 10px 0;
-    min-height: 60px; /* Slightly larger minimum height */
+    min-height: 60px;
     line-height: 1.2;
-    transition: transform 0.3s ease, filter 0.3s ease; /* Add filter transition for glow */
-    /* For crystal glow effect */
-    filter: drop-shadow(0 0 0px transparent);
+    transition: transform 0.3s ease, opacity 0.3s ease, filter 0.3s ease;
+    /* Ensure emojis/text are centered vertically if needed */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 2px 2px #000; /* Add shadow for visibility */
 }
 .game-visual-area.defeated {
-     transform: rotate(-10deg) scale(0.9);
-     opacity: 0.7;
-}
-.game-visual-area .crystal-glow {
-    /* Style for the glowing part of the crystal */
-    transition: text-shadow 0.5s ease-in-out;
+     transform: rotate(-5deg) scale(0.95); /* More subtle defeat animation */
+     opacity: 0.8;
 }
 
 .game-progress-area {
-    margin: 10px 0;
+    margin: 15px 0; /* More space around progress */
     min-height: 30px;
-    display: flex; /* Use flex for centering items */
+    display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap */
+    gap: 8px; /* Space between progress items */
 }
 /* Progress Bar */
 .progress-bar-container {
-    background-color: #555;
-    border-radius: 0;
-    height: 25px;
-    overflow: hidden;
-    border: 2px solid #fff;
-    margin: 0 auto; /* Keep centering */
-    width: 70%; /* Adjust width */
+    width: 90%; /* Make bar wider */
+    /* Remove nes-container styles */
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
 }
-.progress-bar {
-    background-color: #e64f5b;
-    height: 100%;
-    width: 100%;
-    transition: width 0.5s ease-in-out;
+.progress-bar-container progress {
+    width: 100%; /* Progress element fills its container */
+    height: 25px; /* Standard NES progress height */
+    /* nes.css handles the appearance based on value/class */
 }
+
 /* Progress Steps */
 .progress-steps {
     display: flex;
@@ -121,78 +146,215 @@ body {
 .step {
     width: 20px;
     height: 20px;
-    border: 2px solid #ccc;
+    border: 2px solid #fff; /* White border */
     background-color: #555;
-    display: inline-flex; /* Use flex for centering content */
+    display: inline-flex;
     justify-content: center;
     align-items: center;
-    position: relative; /* Needed for character positioning */
+    position: relative;
     transition: background-color 0.3s ease, border-color 0.3s ease;
+    box-shadow: 2px 2px 0 #fff; /* Small shadow */
 }
 .step.completed {
     background-color: #92cc41; /* NES Green */
-    border-color: #fff;
 }
-.step.current-step::after { /* More visual character marker */
-    content: '👤'; /* Or use a pixel art character/icon */
-    font-size: 16px; /* Adjust size */
+.step.current-step::after {
+    content: '🚶'; /* Use walking emoji or better pixel art */
+    font-size: 16px;
     color: #fff;
     position: absolute;
-    bottom: 100%; /* Position above the step */
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 2px; /* Space above step */
-    z-index: 1; /* Ensure it's on top */
+    margin-bottom: 5px; /* More space above step */
+    animation: walk-bounce 0.5s infinite alternate; /* Add small animation */
+    text-shadow: 1px 1px #000; /* Shadow for character */
 }
+@keyframes walk-bounce {
+    from { transform: translateX(-50%) translateY(0); }
+    to { transform: translateX(-50%) translateY(-3px); }
+}
+
 /* Build/Fill/Reveal Progress */
-.build-progress, .reveal-area {
-    font-size: 1.2em; /* Make pieces slightly larger */
-    letter-spacing: 3px; /* Space out items */
+.build-progress, .reveal-area, .charge-indicator, .fill-visual {
+    font-size: 1.5em; /* Make pieces/items larger */
+    letter-spacing: 3px;
     line-height: 1.5;
+    /* Add shadow for visual pop */
+    text-shadow: 2px 2px #000;
 }
 .build-piece, .reveal-item {
     display: inline-block;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0.5; /* Start slightly faded */
-    transform: scale(0.8); /* Start slightly smaller */
+    /* Start state before 'added'/'revealed' */
+    opacity: 0;
+    transform: scale(0.5);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.4s ease-out; /* Bouncier transition */
 }
+/* End state after 'added'/'revealed' */
 .build-piece.added, .reveal-item.revealed {
     opacity: 1;
     transform: scale(1);
 }
 
+/* Specific visuals adjustments */
+.potion-bottle {
+    transition: filter 0.5s ease; /* Smooth color change */
+}
+.crystal-base {
+    transition: transform 0.5s ease, filter 0.5s ease; /* Smooth scale and glow */
+}
+
 
 /* Task Area */
 .task-section {
-    background-color: #fff;
-    color: #212529;
-    border-color: #ccc;
-    padding: 20px; /* Adjust padding */
-    flex-grow: 1; /* Allow task section to fill remaining space */
+    background-color: #fff; /* White background */
+    color: #212529; /* Dark text */
+    border-color: #212529; /* Dark border */
+    box-shadow: 4px 4px 0 #212529; /* Dark shadow */
+    padding: 20px;
+    flex-grow: 1;
     display: flex;
-    flex-direction: column; /* Stack elements vertically */
-    min-height: 300px; /* Ensure minimum height */
-    overflow-y: auto; /* Allow scrolling if content overflows */
+    flex-direction: column;
+    min-height: 300px;
+    overflow-y: hidden; /* Hide overall overflow, individual lists scroll */
 }
-.add-task { /* No changes needed */ }
-.task-lists { /* Minor adjustments if needed */
-    flex-grow: 1; /* Allow lists to take available space */
-    overflow-y: auto; /* Allow individual list scrolling if they get long */
+.task-section .title {
+     background-color: #212529; /* Dark title bar */
+     color: #fff; /* White title text */
+}
+
+.add-task {
+    display: flex; /* Use flex for layout */
+    align-items: center; /* Align items vertically */
+    gap: 10px; /* Space between input and button */
+    margin-bottom: 20px;
+}
+.add-task label {
+    flex-shrink: 0; /* Prevent label from shrinking */
+}
+.add-task input[type="text"] {
+    flex-grow: 1; /* Allow input to take available space */
+    min-width: 0; /* Allow input to shrink below content size */
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8em;
+    /* Ensure NES input styles are applied */
+}
+.add-task button {
+    flex-shrink: 0; /* Prevent button from shrinking */
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8em;
+    /* Ensure NES button styles are applied */
+}
+/* Style for temporary feedback */
+.add-task input.input-error {
+     border-color: #e76e55; /* Error color */
+     animation: shake 0.5s; /* Shake animation */
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+
+.task-lists {
+    flex-grow: 1;
+    display: flex; /* Arrange lists side-by-side */
+    gap: 20px; /* Space between lists */
     margin-bottom: 15px;
+    overflow-y: auto; /* Allow this container to scroll if both lists are long */
+    padding: 0 10px; /* Add some horizontal padding */
 }
-.list-container { /* No changes needed */ }
-#todo-list li, #completed-list li { /* No changes needed */ }
+.list-container {
+    flex: 1; /* Each list takes equal space */
+    display: flex;
+    flex-direction: column;
+    /* Add subtle border/background to list containers */
+    border: 2px dashed #ccc; /* Dashed border */
+    padding: 10px;
+    background-color: #eee; /* Light gray background */
+}
+.list-container h4 {
+     margin-top: 0;
+     margin-bottom: 10px;
+     font-size: 1em;
+     display: flex; /* Align icon and text */
+     align-items: center;
+     gap: 5px;
+}
+.list-container ul {
+    list-style: none; /* Remove default list markers */
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+    overflow-y: auto; /* Make individual lists scrollable */
+}
+
+#todo-list li, #completed-list li {
+    display: flex; /* Align text and actions */
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0; /* Add padding */
+    border-bottom: 1px dashed #ccc; /* Separator */
+    cursor: pointer; /* Indicate clickable */
+    transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transitions */
+    font-size: 0.9em; /* Slightly smaller text */
+}
+#completed-list li {
+    /* text-decoration: line-through; /* Optional strikethrough */ */
+    color: #777; /* Dim completed tasks */
+    /* Add checkmark icon instead of text-decoration? */
+}
+#completed-list li .task-text::before {
+     content: '✔ '; /* Add a checkmark prefix */
+     color: #41a729; /* Green checkmark */
+}
+
+
+.task-text {
+    flex-grow: 1;
+    margin-right: 10px; /* Space between text and actions */
+    word-break: break-word; /* Prevent long words from overflowing */
+}
+.task-actions {
+    display: flex;
+    gap: 5px; /* Space between action buttons */
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+.task-actions button {
+    padding: 4px 6px; /* Adjust button padding */
+    line-height: 1; /* Center icon better */
+}
+.task-placeholder {
+    font-style: italic;
+    color: #999;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Inline Edit Input */
+.edit-input.nes-input {
+    /* Inherits most styles from nes-input */
+    padding: 4px 8px; /* Adjust padding */
+    font-size: 0.9em; /* Match list item font size */
+}
 
 /* Action Buttons */
 .day-actions {
-    margin-top: 20px; /* Space above buttons */
+    margin-top: 20px;
     display: flex;
-    justify-content: space-around; /* Space out buttons */
-    flex-wrap: wrap; /* Allow wrapping on small screens */
+    justify-content: space-around;
+    flex-wrap: wrap;
     gap: 10px;
-    border-top: 2px solid #eee; /* Separator line */
+    border-top: 2px solid #eee;
     padding-top: 15px;
 }
+.day-actions button {
+     font-family: 'Press Start 2P', cursive;
+     font-size: 0.8em;
+     /* Ensure NES button styles */
+}
+
 
 /* Modal Styling */
 .modal-overlay {
@@ -201,54 +363,119 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Ensure it's on top */
+    z-index: 1000;
+    /* Add slight animation */
+    animation: fadeIn 0.3s ease-out;
 }
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .modal-overlay.hidden {
     display: none;
 }
 #mission-dialog {
-    max-width: 500px; /* Limit report width */
+    max-width: 550px; /* Slightly wider report */
     width: 90%;
-    background-color: #fff; /* White dialog background */
-    color: #212529; /* Dark text */
-    border-color: #212529; /* Dark border */
-    max-height: 80vh; /* Limit height */
-    overflow-y: auto; /* Allow scrolling within dialog */
+    background-color: #fff;
+    color: #212529;
+    border-color: #212529;
+    box-shadow: 8px 8px 0 #212529; /* Match container shadow */
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px; /* Add padding */
+    box-sizing: border-box;
+    animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Pop-in animation */
 }
+@keyframes popIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
 #mission-dialog .title {
-    background-color: #212529; /* Dark title bar */
+    background-color: #212529;
     color: #fff;
+    padding: 10px 20px; /* Padding for title bar */
+    margin: -20px -20px 20px -20px; /* Negative margin to fill top */
+    border-radius: 8px 8px 0 0; /* Match container top radius */
+    font-size: 1.2em;
+}
+#mission-dialog p {
+    margin-bottom: 10px;
+    font-size: 0.9em;
 }
 #report-tasks {
-    text-align: left;
     margin: 15px 0;
+    padding: 10px;
+    border: 2px dashed #ccc; /* Dashed border for task list area */
+    background-color: #eee; /* Light background */
+}
+#report-tasks p {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 #report-tasks ul {
-     max-height: 150px; /* Limit task list height */
+     max-height: 150px;
      overflow-y: auto;
-     padding-left: 20px; /* Indent list */
+     padding-left: 20px;
+     list-style-type: disc; /* Use disc list style */
+}
+#report-tasks ul li {
+     margin-bottom: 5px;
+     font-size: 0.9em;
+}
+
+#report-game-status {
+     font-weight: bold;
+     margin-top: 15px;
+     text-align: center;
+     font-size: 1em;
+}
+#report-game-status.is-success {
+     color: #41a729; /* Green for success */
+}
+#report-game-status:not(.is-success) {
+     color: #e76e55; /* Red/Error for incomplete */
+}
+
+
+.dialog-menu {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
 }
 
 /* Disable interaction styles */
 .day-completed .task-section input,
-.day-completed .task-section button:not(#new-day-btn), /* Allow New Day */
-.day-completed .task-section ul li {
-    pointer-events: none;
-    opacity: 0.6;
-}
-.day-completed #complete-day-btn {
-    pointer-events: none;
-    opacity: 0.6;
-}
+.day-completed .task-section button:not(#new-day-btn):not(.nes-btn.is-error), /* Allow New Day & Delete button (maybe allow deleting unfinished tasks?) */
 .day-completed .game-selection select {
+     /* Use disabled attribute in JS for better control and accessibility */
+     pointer-events: none; /* Still use pointer-events for visual cue */
+     opacity: 0.6;
+}
+/* Dim completed tasks slightly more when day is done */
+.day-completed #completed-list li {
+     opacity: 0.8;
+}
+/* Dim incomplete tasks significantly when day is done */
+.day-completed #todo-list li {
+    opacity: 0.4;
     pointer-events: none;
-    opacity: 0.6;
 }
 
 .hidden {
-    display: none;
+    display: none !important; /* Use !important to ensure it overrides flex/block */
+}
+
+/* Minor adjustments for NES icons */
+.nes-icon.is-small {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.25em; /* Adjust alignment */
 }
