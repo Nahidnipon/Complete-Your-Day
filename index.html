@@ -13,7 +13,13 @@
 <body>
     <header class="main-header Nes nes-container is-dark">
         <div class="header-left">
-            <span id="welcome-message">Welcome Player! Complete your day!</span>
+            <span id="welcome-message">Welcome Player!</span>
+        </div>
+        <div class="profile-section">
+             <span id="profile-icon">👤</span>
+             <span id="player-name">Player</span>
+             <span id="player-level">Lv. 1</span>
+             <button id="edit-profile-btn" type="button" class="Nes nes-btn is-warning is-small">Edit</button>
         </div>
         <div class="header-right">
             <span id="date-time">--/--/---- --:--</span>
@@ -23,7 +29,7 @@
     <div class="container Nes nes-container is-rounded is-dark">
         <!-- Game Selection -->
         <div class="game-selection Nes nes-field is-inline">
-            <label for="game-select-dropdown">Select Daily Theme:</label>
+            <label for="game-select-dropdown">Daily Quest:</label>
             <div class="Nes nes-select">
                 <select id="game-select-dropdown" required>
                     <!-- Options populated by JS -->
@@ -34,7 +40,8 @@
         <!-- Game Area -->
         <div class="game-area Nes nes-container is-rounded">
             <h2 id="game-title">[Game Title Loading...]</h2>
-            <div id="game-visual" class="game-visual-area">[Game Visual Loading...]</div>
+            <!-- Game Visual area - will contain progressive visuals -->
+            <div id="game-visual" class="game-visual-area"></div>
             <div id="game-progress" class="game-progress-area">
                 <!-- Progress Bar / Steps / etc. will be rendered here -->
             </div>
@@ -72,15 +79,13 @@
     <!-- Mission Report Modal -->
     <div id="mission-report-modal" class="modal-overlay hidden">
         <div class="Nes nes-dialog is-rounded" id="mission-dialog">
-             <form method="dialog"> <!-- Allows closing with buttons -->
+             <form method="dialog">
                 <p class="title">Mission Report</p>
                 <p id="report-date"></p>
                 <p id="report-summary"></p>
                 <div id="report-tasks">
                     <p><strong>Completed Quests:</strong></p>
-                    <ul id="report-task-list" class="Nes nes-list is-circle">
-                        <!-- Completed tasks listed here -->
-                    </ul>
+                    <ul id="report-task-list" class="Nes nes-list is-circle"></ul>
                 </div>
                 <p id="report-game-status"></p>
                 <menu class="dialog-menu">
@@ -89,6 +94,47 @@
             </form>
         </div>
     </div>
+
+    <!-- Incomplete Tasks Modal -->
+     <div id="incomplete-dialog-overlay" class="modal-overlay hidden">
+         <div class="Nes nes-dialog is-rounded" id="incomplete-dialog">
+              <form method="dialog">
+                 <p class="title" id="incomplete-dialog-title">Quests Remaining!</p>
+                 <p id="incomplete-dialog-message"></p>
+                 <div id="incomplete-dialog-tasks">
+                     <p><strong>Unfinished Quests:</strong></p>
+                     <ul id="incomplete-task-list" class="Nes nes-list is-circle"></ul>
+                 </div>
+                 <menu class="dialog-menu">
+                     <button class="Nes nes-btn is-error" id="cancel-complete-btn">Cancel</button>
+                     <button class="Nes nes-btn is-success" id="force-complete-btn">Complete Anyway</button>
+                 </menu>
+             </form>
+         </div>
+     </div>
+
+     <!-- Profile Edit Modal -->
+     <div id="profile-edit-modal" class="modal-overlay hidden">
+         <div class="Nes nes-dialog is-rounded" id="profile-dialog">
+              <form method="dialog">
+                 <p class="title">Edit Profile</p>
+                 <div class="nes-field">
+                     <label for="profile-name-input">Adventurer Name:</label>
+                     <input type="text" id="profile-name-input" class="Nes nes-input" maxlength="20">
+                 </div>
+                 <div class="nes-field">
+                     <label for="profile-icon-select">Choose Icon:</label>
+                      <div id="profile-icon-selection" class="icon-grid">
+                          <!-- Icons populated by JS -->
+                      </div>
+                 </div>
+                 <menu class="dialog-menu">
+                     <button class="Nes nes-btn is-error" id="cancel-profile-edit-btn">Cancel</button>
+                     <button class="Nes nes-btn is-primary" id="save-profile-btn">Save</button>
+                 </menu>
+             </form>
+         </div>
+     </div>
 
 
     <script src="script.js"></script>
