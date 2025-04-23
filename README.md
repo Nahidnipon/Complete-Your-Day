@@ -4,10 +4,12 @@
 
 [![Status](https://img.shields.io/badge/status-in%20progress-blue)](...)
 
+Visit -> https://nahidnipon.github.io/Complete-Your-Day/ 
+
 A fun, gamified task management web application designed to motivate you by turning your daily to-do list into a mini retro-style game. Complete your tasks to progress and conquer the day's challenge!
 
-![Screenshot of Vintage Task Quest](./screenshot.png)
-*(Replace with an actual screenshot of the application!)*
+![image](https://github.com/user-attachments/assets/22dfa865-f2ce-4706-9a70-939e6d2f929c)
+
 
 ## Overview
 
