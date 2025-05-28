@@ -347,6 +347,7 @@ body {
     font-size: 0.9em;
     gap: 10px; /* Space between checkbox/text and actions */
     min-height: 30px; /* Ensure minimum height even if content is small */
+    position: relative; /* For pseudo-elements like drag-over-visual if used directly on li */
 }
 
 /* Hide default list style markers */
@@ -430,6 +431,50 @@ body {
     margin-bottom: 0;
     box-sizing: border-box;
 }
+
+/* --- DRAG AND DROP STYLES --- */
+.task-item.dragging {
+    opacity: 0.4 !important;
+    background: #777 !important; /* Lighter grey for dragging over dark items */
+    border-style: dashed !important;
+    color: #fff !important; /* Ensure text is visible */
+    box-shadow: none !important;
+}
+
+.task-item.drag-over-visual {
+    border-top: 3px dashed var(--nes-color-primary, #209cee) !important;
+    /* Adjust padding to visually make space for the border */
+    /* Original padding-top is part of the 8px vertical padding.
+       If we add a 3px border, we might want to reduce padding-top if it looks too spaced,
+       or add margin-top: -3px to compensate if it pushes content.
+       Given padding is 8px 0, this means 8px top and 8px bottom.
+       The border-top is outside this padding.
+    */
+}
+
+/* Style for an empty todo-list to show it's a drop target */
+#todo-list:empty {
+    min-height: 60px;
+    border: 3px dashed #aaa;
+    border-radius: 4px; /* Consistent with NES.css rounding */
+    background-color: rgba(255,255,255,0.05); /* Very light tint for dark bg */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+#todo-list:empty::after {
+    content: "Drag Quests Here";
+    color: #888;
+    font-size: 0.85em;
+}
+/* Highlight empty list when dragging over it */
+#todo-list.drag-over-empty:empty { /* Ensure this targets :empty state as well */
+    background-color: rgba(32, 156, 238, 0.1); /* Light blue tint from primary color */
+    border-color: var(--nes-color-primary, #209cee);
+}
+/* --- END DRAG AND DROP STYLES --- */
+
 
 /* Action Buttons */
 .day-actions {
@@ -630,15 +675,26 @@ body {
 .day-completed .task-section input:not(#new-task-input),
 .day-completed .task-section button:not(#new-day-btn):not(.nes-btn.is-error),
 .day-completed .game-selection select,
-.day-completed .task-checkbox {
+.day-completed .task-checkbox { /* Also disable task-checkbox interaction */
     pointer-events: none;
     opacity: 0.6;
     cursor: default !important;
 }
+
+/* More specific disabling of drag for completed day */
+.day-completed #todo-list li,
+.day-completed #todo-list li * { /* Ensure children are also not draggable/interactive */
+    cursor: default !important;
+    /* draggable attribute is handled by JS, but this reinforces no interaction */
+}
+.day-completed #todo-list li {
+    opacity: 0.4; /* Dim incomplete tasks */
+    /* pointer-events: none; /* This would prevent even tooltips if any */
+}
+
+
 /* Dim completed tasks slightly more when day is done */
 .day-completed #completed-list li { opacity: 0.8; }
-/* Dim incomplete tasks significantly when day is done */
-.day-completed #todo-list li { opacity: 0.4; pointer-events: none; }
 
 
 .hidden { display: none !important; }
