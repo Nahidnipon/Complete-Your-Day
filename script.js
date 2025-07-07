@@ -100,8 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Functions ---
     function updateDateTime() {
         const now = new Date();
-        dateTimeDisplay.textContent = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour24: false })}`;
-
+        dateTimeDisplay.textContent = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}`;
     }
     function startDateTimeInterval() { if (!dateTimeInterval) dateTimeInterval = setInterval(updateDateTime, 1000); }
     function getCurrentDateString() { return new Date().toISOString().split('T')[0]; }
