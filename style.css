@@ -740,3 +740,41 @@ body {
          min-width: auto;
      }
 }
+/* --- Pomodoro Timer Styles --- */
+#pomodoro-container {
+    position: fixed; /* Keeps it in place when scrolling */
+    top: 120px; /* Position from the top */
+    right: 20px; /* Position from the right */
+    width: 200px; /* Fixed width */
+    z-index: 500; /* Ensures it's above the background but below modals */
+    text-align: center;
+    border: 4px solid #fff;
+    box-shadow: 4px 4px 0 #fff;
+}
+
+#pomodoro-container .title {
+    background-color: #fff;
+    color: #212529;
+    display: table;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.timer-display {
+    font-size: 2.5em; /* Large font for the timer */
+    font-weight: bold;
+    margin: 15px 0;
+    color: #fff;
+    text-shadow: 2px 2px #000;
+    letter-spacing: 2px;
+}
+
+.pomodoro-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.pomodoro-controls .nes-btn {
+    font-size: 0.8em; /* Smaller font for buttons */
+}
