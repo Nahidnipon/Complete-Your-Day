@@ -373,7 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
             newTaskInput.focus();
             return;
         }
-        tasks.unshift({ id: Date.now(), text: text, completed: false }); // Add to top
         tasks.unshift({ id: Date.now(), text: text, status: 'todo' }); // Add to top
         newTaskInput.value = '';
         newTaskInput.focus();
@@ -466,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function finalizeDayCompletion() {
         if (isDayCompleteState) return; // Should not happen
 
-        const completedCount = tasks.filter(t => t.completed).length;
+        const completedCount = tasks.filter(t => t.status === 'completed').length;
         const totalCount = tasks.length;
         const gameActuallyWon = totalCount > 0 && completedCount === totalCount;
         let streakMsg = "";
@@ -500,7 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { newTaskInput.classList.remove('input-error'); newTaskInput.placeholder = 'Enter quest details...'; }, 500);
             newTaskInput.focus(); return;
         }
-        const incomplete = tasks.filter(t => !t.completed);
         const incomplete = tasks.filter(t => t.status !== 'completed');
         if (incomplete.length > 0) {
             showIncompleteTasksDialog(incomplete);
@@ -696,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Play sound if task was completed
         if (newStatus === 'completed' && draggedTaskActual.status !== 'completed') {
             playSound(completeSound);
-            }
         }
         
         cleanupDragDropVisuals(); // Clear classes before re-render
@@ -734,31 +731,31 @@ document.addEventListener('DOMContentLoaded', () => {
     saveProfileBtn.addEventListener('click', saveProfileEdit);
     profileEditModal.addEventListener('click', (e) => { if (e.target === profileEditModal) closeProfileEditModal(); });
 
-    // Drag and Drop Listeners for todoList container
+    // Drag and Drop Listeners for all lists
     todoList.addEventListener('dragover', handleDragOver);
     todoList.addEventListener('drop', handleDrop);
-    ongoingList.addEventListener('dragover', handleDragOver);
-    ongoingList.addEventListener('drop', handleDrop);
-    completedList.addEventListener('dragover', handleDragOver);
-    completedList.addEventListener('drop', handleDrop);
-    
     todoList.addEventListener('dragleave', (e) => {
         // If leaving todoList entirely (not just moving between its children)
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
+
+    ongoingList.addEventListener('dragover', handleDragOver);
+    ongoingList.addEventListener('drop', handleDrop);
     ongoingList.addEventListener('dragleave', (e) => {
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
+
+    completedList.addEventListener('dragover', handleDragOver);
+    completedList.addEventListener('drop', handleDrop);
     completedList.addEventListener('dragleave', (e) => {
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
-
 
     // --- Initial Load ---
     function init() {
