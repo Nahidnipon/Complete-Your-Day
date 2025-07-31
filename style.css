@@ -78,8 +78,8 @@ body {
 
 /* Main Container - Adjusted Width */
 .container.nes-container.is-dark {
-    max-width: 1000px; /* Increased max-width for laptop screens */
-    width: 95%; /* Allow it to shrink on small screens */
+    max-width: 1400px; /* Further increased max-width for wider screens */
+    width: 98%; /* Use more of the screen width */
     margin: 0 auto 20px auto; /* Center horizontally, add space below */
     border-radius: 10px; /* Keep the rounded corners */
     border: 4px solid #fff; /* Keep the NES border */
@@ -303,7 +303,7 @@ body {
     border: 2px dashed #ccc;
     padding: 10px;
     background-color: #eee;
-    min-width: 200px; /* Prevent lists from collapsing too much */
+    min-width: 250px; /* Increased minimum width for three columns */
 }
 .list-container h4 {
      margin-top: 0;
@@ -391,6 +391,37 @@ body {
     text-shadow: 1px 1px #fff; /* Outline/shadow for checkmark */
 }
 
+/* Ongoing Task Styling */
+#ongoing-list li {
+    background-color: #fff3cd; /* Light yellow background for ongoing tasks */
+    border-left: 4px solid #ffc107; /* Yellow left border */
+}
+#ongoing-list li.is-ongoing {
+    color: #856404; /* Darker text for ongoing tasks */
+}
+
+/* Tick Button for Ongoing Tasks */
+.task-tick-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0 !important;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1em;
+    line-height: 1;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.task-tick-btn:hover:not(:disabled) {
+    background-color: #28a745;
+    transform: scale(1.1);
+}
+.task-tick-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
 
 #completed-list li {
     color: #777; /* Dim completed task text */
@@ -453,7 +484,7 @@ body {
 }
 
 /* Style for an empty todo-list to show it's a drop target */
-#todo-list:empty {
+#todo-list:empty, #ongoing-list:empty, #completed-list:empty {
     min-height: 60px;
     border: 3px dashed #aaa;
     border-radius: 4px; /* Consistent with NES.css rounding */
@@ -468,8 +499,18 @@ body {
     color: #888;
     font-size: 0.85em;
 }
+#ongoing-list:empty::after {
+    content: "Drag Active Quests Here";
+    color: #888;
+    font-size: 0.85em;
+}
+#completed-list:empty::after {
+    content: "Completed Quests Here";
+    color: #888;
+    font-size: 0.85em;
+}
 /* Highlight empty list when dragging over it */
-#todo-list.drag-over-empty:empty { /* Ensure this targets :empty state as well */
+#todo-list.drag-over-empty:empty, #ongoing-list.drag-over-empty:empty, #completed-list.drag-over-empty:empty {
     background-color: rgba(32, 156, 238, 0.1); /* Light blue tint from primary color */
     border-color: var(--nes-color-primary, #209cee);
 }
@@ -738,6 +779,12 @@ body {
     }
      .list-container {
          min-width: auto;
+     }
+     
+     /* Adjust container width for mobile */
+     .container.nes-container.is-dark {
+         width: 95%;
+         max-width: none;
      }
 }
 /* --- Pomodoro Timer Styles --- */

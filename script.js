@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newTaskInput = document.getElementById('new-task-input');
     const addTaskBtn = document.getElementById('add-task-btn');
     const todoList = document.getElementById('todo-list'); // Key element for drag-drop
+    const ongoingList = document.getElementById('ongoing-list');
     const completedList = document.getElementById('completed-list');
     const completeDayBtn = document.getElementById('complete-day-btn');
     const newDayBtn = document.getElementById('new-day-btn');
@@ -92,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameWinState = false;
     let profile = { name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] };
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v8_dnd', GAME_INFO: 'vintageGameInfo_v8_dnd',
-        DAY_COMPLETE: 'vintageDayComplete_v8_dnd', PROFILE: 'vintageProfile_v4_dnd'
+        TASKS: 'vintageTasks_v9_ongoing', GAME_INFO: 'vintageGameInfo_v9_ongoing',
+        DAY_COMPLETE: 'vintageDayComplete_v9_ongoing', PROFILE: 'vintageProfile_v5_ongoing'
     };
     let draggedTaskId = null; // For drag and drop
 
@@ -142,6 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadState() {
         tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS)) || [];
+        // Migrate old tasks to include status field
+        tasks = tasks.map(task => ({
+            ...task,
+            status: task.status || (task.completed ? 'completed' : 'todo')
+        }));
         isDayCompleteState = localStorage.getItem(STORAGE_KEYS.DAY_COMPLETE) === 'true';
         const storedProfile = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILE));
         profile = { ...{ name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] }, ...storedProfile };
@@ -169,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function setDayCompletionStyling() {
-        const completedTasksCount = tasks.filter(task => task.completed).length;
+        const completedTasksCount = tasks.filter(task => task.status === 'completed').length;
         const totalTasksCount = tasks.length;
         const isGameWonCurrent = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
@@ -193,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(task => task.completed).length;
+        const completedTasks = tasks.filter(task => task.status === 'completed').length;
         gameWinState = totalTasks > 0 && completedTasks === totalTasks;
         gameTitle.textContent = currentGame.name;
 
@@ -250,25 +256,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Renders only the task DOM, used by renderAll and drag/drop
     function renderTasksDOM() {
         todoList.innerHTML = '';
+        ongoingList.innerHTML = '';
         completedList.innerHTML = '';
-        let hasIncomplete = false;
+        let hasTodo = false;
+        let hasOngoing = false;
+        let hasCompleted = false;
 
         tasks.forEach(task => {
             const li = createTaskElement(task);
-            if (task.completed) {
+            if (task.status === 'completed') {
                 completedList.appendChild(li);
+                hasCompleted = true;
+            } else if (task.status === 'ongoing') {
+                ongoingList.appendChild(li);
+                hasOngoing = true;
             } else {
                 todoList.appendChild(li);
-                hasIncomplete = true;
+                hasTodo = true;
             }
         });
 
         if (tasks.length === 0) {
             todoList.innerHTML = '<li class="task-placeholder">No quests yet... Add one!</li>';
+            ongoingList.innerHTML = '<li class="task-placeholder">No ongoing quests yet.</li>';
             completedList.innerHTML = '<li class="task-placeholder">No completed quests yet.</li>';
         } else {
-            if (!hasIncomplete) todoList.innerHTML = '<li class="task-placeholder">All quests done!</li>';
-            if (tasks.filter(t => t.completed).length === 0) completedList.innerHTML = '<li class="task-placeholder">No completed quests yet.</li>';
+            if (!hasTodo) todoList.innerHTML = '<li class="task-placeholder">No pending quests!</li>';
+            if (!hasOngoing) ongoingList.innerHTML = '<li class="task-placeholder">No ongoing quests yet.</li>';
+            if (!hasCompleted) completedList.innerHTML = '<li class="task-placeholder">No completed quests yet.</li>';
         }
     }
 
@@ -283,25 +298,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createTaskElement(task) {
         const li = document.createElement('li');
-        li.className = `task-item ${task.completed ? 'is-completed' : ''}`;
+        li.className = `task-item ${task.status === 'completed' ? 'is-completed' : ''} ${task.status === 'ongoing' ? 'is-ongoing' : ''}`;
         li.dataset.id = task.id;
         li.setAttribute('role', 'checkbox');
-        li.setAttribute('aria-checked', task.completed.toString());
+        li.setAttribute('aria-checked', (task.status === 'completed').toString());
 
         // Draggable only if NOT completed AND day is NOT complete
-        if (!task.completed && !isDayCompleteState) {
+        if (task.status !== 'completed' && !isDayCompleteState) {
             li.draggable = true;
             li.addEventListener('dragstart', handleDragStart);
             li.addEventListener('dragend', handleDragEnd);
         }
 
-        const checkbox = document.createElement('div');
-        checkbox.className = 'task-checkbox';
-        if (isDayCompleteState || task.completed) checkbox.classList.add('disabled');
-        checkbox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isDayCompleteState && !task.completed) toggleTaskCompletion(task.id);
-        });
+        // Create appropriate action button based on task status
+        let actionButton;
+        if (task.status === 'ongoing') {
+            // Tick button for ongoing tasks
+            actionButton = document.createElement('button');
+            actionButton.className = 'task-tick-btn Nes nes-btn is-success is-small';
+            actionButton.innerHTML = '✓';
+            actionButton.title = 'Complete Quest';
+            actionButton.disabled = isDayCompleteState;
+            actionButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!isDayCompleteState) completeOngoingTask(task.id);
+            });
+        } else {
+            // Regular checkbox for todo and completed tasks
+            actionButton = document.createElement('div');
+            actionButton.className = 'task-checkbox';
+            if (isDayCompleteState || task.status === 'completed') actionButton.classList.add('disabled');
+            actionButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!isDayCompleteState && task.status !== 'completed') toggleTaskCompletion(task.id);
+            });
+        }
 
         const textSpan = document.createElement('span');
         textSpan.className = 'task-text';
@@ -314,19 +345,19 @@ document.addEventListener('DOMContentLoaded', () => {
         editBtn.innerHTML = '<i class="Nes nes-icon edit is-small"></i>';
         editBtn.className = 'Nes nes-btn is-small is-warning';
         editBtn.title = "Edit Quest";
-        editBtn.disabled = isDayCompleteState || task.completed;
+        editBtn.disabled = isDayCompleteState || task.status === 'completed';
         editBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!editBtn.disabled) editTask(task.id, li); });
 
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '<i class="Nes nes-icon close is-small"></i>';
         deleteBtn.className = 'Nes nes-btn is-error is-small';
         deleteBtn.title = "Discard Quest";
-        deleteBtn.disabled = isDayCompleteState && !task.completed;
+        deleteBtn.disabled = isDayCompleteState && task.status !== 'completed';
         deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!deleteBtn.disabled) deleteTask(task.id); });
 
         actionsDiv.appendChild(editBtn);
         actionsDiv.appendChild(deleteBtn);
-        li.appendChild(checkbox);
+        li.appendChild(actionButton);
         li.appendChild(textSpan);
         li.appendChild(actionsDiv);
         return li;
@@ -343,6 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         tasks.unshift({ id: Date.now(), text: text, completed: false }); // Add to top
+        tasks.unshift({ id: Date.now(), text: text, status: 'todo' }); // Add to top
         newTaskInput.value = '';
         newTaskInput.focus();
         renderAll();
@@ -352,15 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isDayCompleteState) return;
         let taskJustCompleted = false;
         tasks = tasks.map(task => {
-            if (task.id === id && !task.completed) {
+            if (task.id === id && task.status !== 'completed') {
                 taskJustCompleted = true;
-                return { ...task, completed: true };
+                return { ...task, status: 'completed' };
             }
             return task;
         });
         if (taskJustCompleted) {
             playSound(completeSound);
-            const li = todoList.querySelector(`li[data-id='${id}']`); // Animate from todo list
+            const li = todoList.querySelector(`li[data-id='${id}']`) || ongoingList.querySelector(`li[data-id='${id}']`);
             if (li) {
                 li.classList.add('completing');
                 setTimeout(renderAll, 300); // Re-render after animation
@@ -372,9 +404,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function completeOngoingTask(id) {
+        if (isDayCompleteState) return;
+        tasks = tasks.map(task => {
+            if (task.id === id && task.status === 'ongoing') {
+                return { ...task, status: 'completed' };
+            }
+            return task;
+        });
+        playSound(completeSound);
+        const li = ongoingList.querySelector(`li[data-id='${id}']`);
+        if (li) {
+            li.classList.add('completing');
+            setTimeout(renderAll, 300);
+        } else {
+            renderAll();
+        }
+    }
+
     function deleteTask(id) {
         const taskToDelete = tasks.find(task => task.id === id);
-        if (!taskToDelete || (isDayCompleteState && !taskToDelete.completed)) return;
+        if (!taskToDelete || (isDayCompleteState && taskToDelete.status !== 'completed')) return;
         if (confirm('Discard this quest forever?')) {
             tasks = tasks.filter(task => task.id !== id);
             renderAll();
@@ -384,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function editTask(id, listItem) {
         if (isDayCompleteState) return;
         const task = tasks.find(t => t.id === id);
-        if (!task || task.completed) return;
+        if (!task || task.status === 'completed') return;
 
         const textSpan = listItem.querySelector('.task-text');
         const currentText = task.text;
@@ -451,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newTaskInput.focus(); return;
         }
         const incomplete = tasks.filter(t => !t.completed);
+        const incomplete = tasks.filter(t => t.status !== 'completed');
         if (incomplete.length > 0) {
             showIncompleteTasksDialog(incomplete);
         } else {
@@ -467,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeIncompleteTasksDialog() { incompleteDialogOverlay.classList.add('hidden'); }
 
     function showMissionReport() {
-        const completed = tasks.filter(t => t.completed);
+        const completed = tasks.filter(t => t.status === 'completed');
         reportDate.textContent = `Date: ${new Date().toLocaleDateString()}`;
         reportSummary.textContent = `Quests Attempted: ${tasks.length} | Completed: ${completed.length}`;
         reportTaskList.innerHTML = completed.length > 0 ? completed.map(t => `<li>${t.text}</li>`).join('') : '<li>None completed.</li>';
@@ -481,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeMissionReport() { missionReportModal.classList.add('hidden'); }
 
     function startNewDay(auto = false) {
-        if (!auto && !isDayCompleteState && tasks.some(t => !t.completed)) {
+        if (!auto && !isDayCompleteState && tasks.some(t => t.status !== 'completed')) {
             if (!confirm('Start fresh? Unfinished quests will be lost. This will reset your streak if the current day\'s quest wasn\'t won!')) return;
             // Finalize the day as incomplete if not already completed to correctly handle streak.
              if (!isDayCompleteState) finalizeDayCompletion(); // This will reset streak if game not won
@@ -534,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Drag and Drop Functions ---
     function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('li.task-item:not(.dragging):not(.is-completed)')];
+        const draggableElements = [...container.querySelectorAll('li.task-item:not(.dragging)')];
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
@@ -547,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleDragStart(e) {
-        if (!e.target.classList.contains('task-item') || e.target.classList.contains('is-completed') || isDayCompleteState) {
+        if (!e.target.classList.contains('task-item') || isDayCompleteState) {
             e.preventDefault(); return;
         }
         draggedTaskId = e.target.dataset.id;
@@ -566,19 +617,22 @@ document.addEventListener('DOMContentLoaded', () => {
         e.dataTransfer.dropEffect = 'move';
 
         // Clear previous visual cues first
-        todoList.querySelectorAll('.drag-over-visual').forEach(el => el.classList.remove('drag-over-visual'));
-        todoList.classList.remove('drag-over-empty');
+        [todoList, ongoingList, completedList].forEach(list => {
+            list.querySelectorAll('.drag-over-visual').forEach(el => el.classList.remove('drag-over-visual'));
+            list.classList.remove('drag-over-empty');
+        });
 
-        const afterElement = getDragAfterElement(todoList, e.clientY);
+        // Determine which list we're over
+        const targetList = e.currentTarget;
+        const afterElement = getDragAfterElement(targetList, e.clientY);
         if (afterElement) {
             afterElement.classList.add('drag-over-visual');
         } else {
-            // If no element to drop before, check if todoList is effectively empty for drop target
-            const currentDraggableItems = todoList.querySelectorAll('li.task-item:not(.is-completed):not(.dragging)');
+            // If no element to drop before, check if list is effectively empty for drop target
+            const currentDraggableItems = targetList.querySelectorAll('li.task-item:not(.dragging)');
             if (currentDraggableItems.length === 0) {
-                todoList.classList.add('drag-over-empty');
+                targetList.classList.add('drag-over-empty');
             }
-            // If dropping at the end of a populated list, no specific item visual needed
         }
     }
 
@@ -588,30 +642,62 @@ document.addEventListener('DOMContentLoaded', () => {
             cleanupDragDropVisuals(); return;
         }
 
-        let incompleteTasksData = tasks.filter(t => !t.completed);
-        const completedTasksData = tasks.filter(t => t.completed);
-        const draggedTaskActual = incompleteTasksData.find(task => task.id.toString() === draggedTaskId);
-
+        const draggedTaskActual = tasks.find(task => task.id.toString() === draggedTaskId);
         if (!draggedTaskActual) {
             console.error("Dragged task data not found:", draggedTaskId);
             cleanupDragDropVisuals(); return;
         }
 
-        incompleteTasksData = incompleteTasksData.filter(task => task.id.toString() !== draggedTaskId); // Remove from old position
+        // Determine target status based on which list we dropped on
+        const targetList = e.currentTarget;
+        let newStatus;
+        if (targetList === todoList) {
+            newStatus = 'todo';
+        } else if (targetList === ongoingList) {
+            newStatus = 'ongoing';
+        } else if (targetList === completedList) {
+            newStatus = 'completed';
+        }
 
-        const afterElement = getDragAfterElement(todoList, e.clientY); // DOM element
-        if (afterElement == null) { // Dropping at the end
-            incompleteTasksData.push(draggedTaskActual);
+        // Update task status
+        tasks = tasks.map(task => {
+            if (task.id.toString() === draggedTaskId) {
+                return { ...task, status: newStatus };
+            }
+            return task;
+        });
+
+        // Handle reordering within the same status group
+        const afterElement = getDragAfterElement(targetList, e.clientY);
+        if (afterElement) {
+            const afterTaskId = afterElement.dataset.id;
+            const sameStatusTasks = tasks.filter(t => t.status === newStatus);
+            const otherTasks = tasks.filter(t => t.status !== newStatus);
+            
+            const draggedTask = sameStatusTasks.find(t => t.id.toString() === draggedTaskId);
+            const filteredTasks = sameStatusTasks.filter(t => t.id.toString() !== draggedTaskId);
+            const afterIndex = filteredTasks.findIndex(t => t.id.toString() === afterTaskId);
+            
+            if (afterIndex !== -1) {
+                filteredTasks.splice(afterIndex, 0, draggedTask);
+            } else {
+                filteredTasks.push(draggedTask);
+            }
+            
+            tasks = [...filteredTasks, ...otherTasks];
         } else {
-            const afterElementId = afterElement.dataset.id;
-            const targetIndex = incompleteTasksData.findIndex(task => task.id.toString() === afterElementId);
-            if (targetIndex !== -1) {
-                incompleteTasksData.splice(targetIndex, 0, draggedTaskActual);
-            } else { // Fallback if ID not found (shouldn't happen)
-                incompleteTasksData.push(draggedTaskActual);
+            // Dropping at the end, just reorder by status
+            const todoTasks = tasks.filter(t => t.status === 'todo');
+            const ongoingTasks = tasks.filter(t => t.status === 'ongoing');
+            const completedTasks = tasks.filter(t => t.status === 'completed');
+            tasks = [...todoTasks, ...ongoingTasks, ...completedTasks];
+        }
+
+        // Play sound if task was completed
+        if (newStatus === 'completed' && draggedTaskActual.status !== 'completed') {
+            playSound(completeSound);
             }
         }
-        tasks = [...incompleteTasksData, ...completedTasksData]; // Recombine
         
         cleanupDragDropVisuals(); // Clear classes before re-render
         draggedTaskId = null; // Reset draggedTaskId *before* renderAll
@@ -622,8 +708,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const draggingElement = document.querySelector('.task-item.dragging');
         if (draggingElement) draggingElement.classList.remove('dragging');
         
-        todoList.querySelectorAll('.drag-over-visual').forEach(el => el.classList.remove('drag-over-visual'));
-        todoList.classList.remove('drag-over-empty');
+        [todoList, ongoingList, completedList].forEach(list => {
+            list.querySelectorAll('.drag-over-visual').forEach(el => el.classList.remove('drag-over-visual'));
+            list.classList.remove('drag-over-empty');
+        });
         // draggedTaskId is reset in handleDrop or handleDragEnd if drop is not successful
         if (event && event.type === "dragend" && draggedTaskId){ // only nullify if dragend and not handled by drop
              draggedTaskId = null;
@@ -649,8 +737,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Drag and Drop Listeners for todoList container
     todoList.addEventListener('dragover', handleDragOver);
     todoList.addEventListener('drop', handleDrop);
+    ongoingList.addEventListener('dragover', handleDragOver);
+    ongoingList.addEventListener('drop', handleDrop);
+    completedList.addEventListener('dragover', handleDragOver);
+    completedList.addEventListener('drop', handleDrop);
+    
     todoList.addEventListener('dragleave', (e) => {
         // If leaving todoList entirely (not just moving between its children)
+        if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
+            cleanupDragDropVisuals();
+        }
+    });
+    ongoingList.addEventListener('dragleave', (e) => {
+        if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
+            cleanupDragDropVisuals();
+        }
+    });
+    completedList.addEventListener('dragleave', (e) => {
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
