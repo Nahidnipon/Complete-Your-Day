@@ -731,31 +731,31 @@ document.addEventListener('DOMContentLoaded', () => {
     saveProfileBtn.addEventListener('click', saveProfileEdit);
     profileEditModal.addEventListener('click', (e) => { if (e.target === profileEditModal) closeProfileEditModal(); });
 
-    // Drag and Drop Listeners for all lists
+    // Drag and Drop Listeners for todoList container
     todoList.addEventListener('dragover', handleDragOver);
     todoList.addEventListener('drop', handleDrop);
+    ongoingList.addEventListener('dragover', handleDragOver);
+    ongoingList.addEventListener('drop', handleDrop);
+    completedList.addEventListener('dragover', handleDragOver);
+    completedList.addEventListener('drop', handleDrop);
+    
     todoList.addEventListener('dragleave', (e) => {
         // If leaving todoList entirely (not just moving between its children)
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
-
-    ongoingList.addEventListener('dragover', handleDragOver);
-    ongoingList.addEventListener('drop', handleDrop);
     ongoingList.addEventListener('dragleave', (e) => {
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
-
-    completedList.addEventListener('dragover', handleDragOver);
-    completedList.addEventListener('drop', handleDrop);
     completedList.addEventListener('dragleave', (e) => {
         if (!e.currentTarget.contains(e.relatedTarget) || e.relatedTarget === null) {
             cleanupDragDropVisuals();
         }
     });
+
 
     // --- Initial Load ---
     function init() {
