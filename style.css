@@ -350,6 +350,25 @@ body {
     position: relative; /* For pseudo-elements like drag-over-visual if used directly on li */
 }
 
+#ongoing-list li {
+    display: flex;
+    align-items: flex-start; /* Align to top for subtasks */
+    padding: 8px 0;
+    border-bottom: 1px dashed #ccc;
+    transition: opacity 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+    font-size: 0.9em;
+    gap: 10px; /* Space between tick button/content and actions */
+    min-height: 30px;
+    position: relative;
+    flex-direction: column; /* Stack main task and subtasks */
+}
+
+.ongoing-task-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
 /* Hide default list style markers */
 .nes-list.is-disc > li::before, .nes-list.is-circle > li::before {
     content: none;
@@ -403,24 +422,30 @@ body {
 /* Tick Button for Ongoing Tasks */
 .task-tick-btn {
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     padding: 0 !important;
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    font-size: 1em;
+    font-size: 0.8em;
     line-height: 1;
-    border-radius: 50%;
+    border: 2px solid #28a745;
+    background-color: #28a745;
+    color: #fff;
+    box-shadow: 2px 2px 0 #1e7e34;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 .task-tick-btn:hover:not(:disabled) {
-    background-color: #28a745;
+    background-color: #218838;
+    border-color: #1e7e34;
     transform: scale(1.1);
 }
 .task-tick-btn:disabled {
     opacity: 0.6;
     cursor: default;
+    transform: none;
 }
 
 #completed-list li {
@@ -453,6 +478,101 @@ body {
 .task-actions button {
     padding: 4px 6px;
     line-height: 1;
+}
+
+/* Subtasks Styling */
+.subtasks-container {
+    width: 100%;
+    margin-top: 8px;
+    padding-left: 30px; /* Indent subtasks */
+}
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.8em;
+    color: #666;
+}
+
+.subtask-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #666;
+    background-color: #fff;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 1px 1px 0 #666;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.subtask-checkbox:hover {
+    background-color: #f0f0f0;
+}
+
+.subtask-checkbox.completed {
+    background-color: #92cc41;
+    border-color: #41a729;
+    box-shadow: 1px 1px 0 #41a729;
+}
+
+.subtask-checkbox.completed::after {
+    content: '✔';
+    color: #212529;
+    font-size: 0.9em;
+    line-height: 1;
+}
+
+.subtask-text {
+    flex-grow: 1;
+    word-break: break-word;
+}
+
+.subtask-text.completed {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.subtask-delete {
+    width: 16px;
+    height: 16px;
+    padding: 0 !important;
+    font-size: 0.7em;
+    line-height: 1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.add-subtask-container {
+    width: 100%;
+    margin-top: 8px;
+    padding-left: 30px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.add-subtask-input {
+    flex-grow: 1;
+    font-size: 0.8em !important;
+    padding: 2px 6px !important;
+    margin-bottom: 0 !important;
+    height: 24px;
+    box-sizing: border-box;
+}
+
+.add-subtask-btn {
+    padding: 2px 6px !important;
+    font-size: 0.7em !important;
+    line-height: 1;
+    height: 24px;
+    box-sizing: border-box;
 }
 
 /* Inline Edit Input */

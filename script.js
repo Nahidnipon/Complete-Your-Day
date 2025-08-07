@@ -93,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameWinState = false;
     let profile = { name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] };
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v9_ongoing', GAME_INFO: 'vintageGameInfo_v9_ongoing',
-        DAY_COMPLETE: 'vintageDayComplete_v9_ongoing', PROFILE: 'vintageProfile_v5_ongoing'
+        TASKS: 'vintageTasks_v10_subtasks', GAME_INFO: 'vintageGameInfo_v10_subtasks',
+        DAY_COMPLETE: 'vintageDayComplete_v10_subtasks', PROFILE: 'vintageProfile_v6_subtasks'
     };
     let draggedTaskId = null; // For drag and drop
 
@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks = tasks.map(task => ({
             ...task,
             status: task.status || (task.completed ? 'completed' : 'todo')
+            subtasks: task.subtasks || []
         }));
         isDayCompleteState = localStorage.getItem(STORAGE_KEYS.DAY_COMPLETE) === 'true';
         const storedProfile = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILE));
@@ -310,20 +311,69 @@ document.addEventListener('DOMContentLoaded', () => {
             li.addEventListener('dragend', handleDragEnd);
         }
 
-        // Create appropriate action button based on task status
-        let actionButton;
+        // For ongoing tasks, create a different structure
         if (task.status === 'ongoing') {
+            // Create header container for ongoing tasks
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'ongoing-task-header';
+
             // Tick button for ongoing tasks
-            actionButton = document.createElement('button');
-            actionButton.className = 'task-tick-btn Nes nes-btn is-success is-small';
-            actionButton.innerHTML = '✓';
-            actionButton.title = 'Complete Quest';
-            actionButton.disabled = isDayCompleteState;
-            actionButton.addEventListener('click', (e) => {
+            const tickButton = document.createElement('button');
+            tickButton.className = 'task-tick-btn Nes nes-btn is-success is-small';
+            tickButton.innerHTML = '✓';
+            tickButton.title = 'Complete Quest';
+            tickButton.disabled = isDayCompleteState;
+            tickButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (!isDayCompleteState) completeOngoingTask(task.id);
             });
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'task-text';
+            textSpan.textContent = task.text;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'task-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '<i class="Nes nes-icon edit is-small"></i>';
+            editBtn.className = 'Nes nes-btn is-small is-warning';
+            editBtn.title = "Edit Quest";
+            editBtn.disabled = isDayCompleteState;
+            editBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!editBtn.disabled) editTask(task.id, li); });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="Nes nes-icon close is-small"></i>';
+            deleteBtn.className = 'Nes nes-btn is-error is-small';
+            deleteBtn.title = "Discard Quest";
+            deleteBtn.disabled = isDayCompleteState;
+            deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!deleteBtn.disabled) deleteTask(task.id); });
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+
+            headerDiv.appendChild(tickButton);
+            headerDiv.appendChild(textSpan);
+            headerDiv.appendChild(actionsDiv);
+
+            li.appendChild(headerDiv);
+
+            // Add subtasks container
+            if (task.subtasks && task.subtasks.length > 0) {
+                const subtasksContainer = createSubtasksContainer(task);
+                li.appendChild(subtasksContainer);
+            }
+
+            // Add "Add Subtask" input if not day complete
+            if (!isDayCompleteState) {
+                const addSubtaskContainer = createAddSubtaskContainer(task.id);
+                li.appendChild(addSubtaskContainer);
+            }
+
+            return li;
         } else {
+            // Create appropriate action button based on task status
+            let actionButton;
             // Regular checkbox for todo and completed tasks
             actionButton = document.createElement('div');
             actionButton.className = 'task-checkbox';
@@ -332,35 +382,99 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 if (!isDayCompleteState && task.status !== 'completed') toggleTaskCompletion(task.id);
             });
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'task-text';
+            textSpan.textContent = task.text;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'task-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '<i class="Nes nes-icon edit is-small"></i>';
+            editBtn.className = 'Nes nes-btn is-small is-warning';
+            editBtn.title = "Edit Quest";
+            editBtn.disabled = isDayCompleteState || task.status === 'completed';
+            editBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!editBtn.disabled) editTask(task.id, li); });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="Nes nes-icon close is-small"></i>';
+            deleteBtn.className = 'Nes nes-btn is-error is-small';
+            deleteBtn.title = "Discard Quest";
+            deleteBtn.disabled = isDayCompleteState && task.status !== 'completed';
+            deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!deleteBtn.disabled) deleteTask(task.id); });
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            li.appendChild(actionButton);
+            li.appendChild(textSpan);
+            li.appendChild(actionsDiv);
+            return li;
         }
+    }
 
-        const textSpan = document.createElement('span');
-        textSpan.className = 'task-text';
-        textSpan.textContent = task.text;
+    function createSubtasksContainer(task) {
+        const container = document.createElement('div');
+        container.className = 'subtasks-container';
+        
+        task.subtasks.forEach(subtask => {
+            const subtaskDiv = document.createElement('div');
+            subtaskDiv.className = 'subtask-item';
+            subtaskDiv.dataset.subtaskId = subtask.id;
 
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'task-actions';
+            const checkbox = document.createElement('div');
+            checkbox.className = `subtask-checkbox ${subtask.completed ? 'completed' : ''}`;
+            checkbox.addEventListener('click', () => toggleSubtask(task.id, subtask.id));
 
-        const editBtn = document.createElement('button');
-        editBtn.innerHTML = '<i class="Nes nes-icon edit is-small"></i>';
-        editBtn.className = 'Nes nes-btn is-small is-warning';
-        editBtn.title = "Edit Quest";
-        editBtn.disabled = isDayCompleteState || task.status === 'completed';
-        editBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!editBtn.disabled) editTask(task.id, li); });
+            const textSpan = document.createElement('span');
+            textSpan.className = `subtask-text ${subtask.completed ? 'completed' : ''}`;
+            textSpan.textContent = subtask.text;
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.innerHTML = '<i class="Nes nes-icon close is-small"></i>';
-        deleteBtn.className = 'Nes nes-btn is-error is-small';
-        deleteBtn.title = "Discard Quest";
-        deleteBtn.disabled = isDayCompleteState && task.status !== 'completed';
-        deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!deleteBtn.disabled) deleteTask(task.id); });
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '×';
+            deleteBtn.className = 'Nes nes-btn is-error is-small subtask-delete';
+            deleteBtn.title = 'Delete Subtask';
+            deleteBtn.addEventListener('click', () => deleteSubtask(task.id, subtask.id));
 
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
-        li.appendChild(actionButton);
-        li.appendChild(textSpan);
-        li.appendChild(actionsDiv);
-        return li;
+            subtaskDiv.appendChild(checkbox);
+            subtaskDiv.appendChild(textSpan);
+            subtaskDiv.appendChild(deleteBtn);
+            container.appendChild(subtaskDiv);
+        });
+
+        return container;
+    }
+
+    function createAddSubtaskContainer(taskId) {
+        const container = document.createElement('div');
+        container.className = 'add-subtask-container';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'add-subtask-input Nes nes-input';
+        input.placeholder = 'Add subtask...';
+
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+';
+        addBtn.className = 'add-subtask-btn Nes nes-btn is-primary is-small';
+        addBtn.title = 'Add Subtask';
+
+        const addSubtask = () => {
+            const text = input.value.trim();
+            if (text) {
+                addSubtaskToTask(taskId, text);
+                input.value = '';
+            }
+        };
+
+        addBtn.addEventListener('click', addSubtask);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubtask();
+        });
+
+        container.appendChild(input);
+        container.appendChild(addBtn);
+        return container;
     }
 
     function addTask() {
@@ -373,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newTaskInput.focus();
             return;
         }
-        tasks.unshift({ id: Date.now(), text: text, status: 'todo' }); // Add to top
+        tasks.unshift({ id: Date.now(), text: text, status: 'todo', subtasks: [] }); // Add to top
         newTaskInput.value = '';
         newTaskInput.focus();
         renderAll();
@@ -490,6 +604,50 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProfile(); // Update header display
         renderAll(); // This will call setDayCompletionStyling, saveState, and re-render tasks (disabling draggable)
         showMissionReport();
+    }
+
+    function addSubtaskToTask(taskId, subtaskText) {
+        tasks = tasks.map(task => {
+            if (task.id === taskId) {
+                const newSubtask = {
+                    id: Date.now() + Math.random(), // Ensure unique ID
+                    text: subtaskText,
+                    completed: false
+                };
+                return { ...task, subtasks: [...(task.subtasks || []), newSubtask] };
+            }
+            return task;
+        });
+        renderAll();
+    }
+
+    function toggleSubtask(taskId, subtaskId) {
+        tasks = tasks.map(task => {
+            if (task.id === taskId) {
+                const updatedSubtasks = task.subtasks.map(subtask => {
+                    if (subtask.id === subtaskId) {
+                        return { ...subtask, completed: !subtask.completed };
+                    }
+                    return subtask;
+                });
+                return { ...task, subtasks: updatedSubtasks };
+            }
+            return task;
+        });
+        renderAll();
+    }
+
+    function deleteSubtask(taskId, subtaskId) {
+        if (confirm('Delete this subtask?')) {
+            tasks = tasks.map(task => {
+                if (task.id === taskId) {
+                    const updatedSubtasks = task.subtasks.filter(subtask => subtask.id !== subtaskId);
+                    return { ...task, subtasks: updatedSubtasks };
+                }
+                return task;
+            });
+            renderAll();
+        }
     }
 
     function completeDay() {
