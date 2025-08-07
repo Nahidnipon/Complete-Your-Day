@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Migrate old tasks to include status field
         tasks = tasks.map(task => ({
             ...task,
-            status: task.status || (task.completed ? 'completed' : 'todo')
+            status: task.status || (task.completed ? 'completed' : 'todo'),
             subtasks: task.subtasks || []
         }));
         isDayCompleteState = localStorage.getItem(STORAGE_KEYS.DAY_COMPLETE) === 'true';
