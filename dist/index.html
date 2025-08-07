@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vintage Task Quest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@latest/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header Nes nes-container is-dark">
+        <div class="header-left">
+            <span id="welcome-message">Welcome Player!</span>
+        </div>
+        <div class="profile-section">
+             <span id="profile-icon">👤</span>
+             <span id="player-name">Adventurer</span>
+             <!-- Reusing player-level element to display streak -->
+             <span id="player-level" class="streak-display">Streak: 0</span>
+             <!-- Removed #player-xp -->
+             <button id="edit-profile-btn" type="button" class="Nes nes-btn is-warning is-small">Edit</button>
+        </div>
+        <div class="header-right">
+            <span id="date-time">--/--/---- --:--</span>
+        </div>
+    </header>
+
+    <div class="container Nes nes-container is-rounded is-dark">
+        <!-- Game Selection -->
+        <div class="game-selection Nes nes-field is-inline">
+            <label for="game-select-dropdown">Daily Quest:</label>
+            <div class="Nes nes-select">
+                <select id="game-select-dropdown" required>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+        </div>
+
+        <!-- Game Area -->
+        <div class="game-area Nes nes-container is-rounded">
+            <h2 id="game-title">[Game Title Loading...]</h2>
+            <!-- Game Visual area - will contain progressive visuals -->
+            <div id="game-visual" class="game-visual-area"></div>
+            <div id="game-progress" class="game-progress-area">
+                <!-- Progress Bar / Steps / etc. will be rendered here -->
+            </div>
+            <p id="game-status-text">[Game Status Loading...]</p>
+            <p id="victory-message" class="hidden Nes nes-text is-success">[Victory Text]</p>
+        </div>
+
+        <!-- Task Area -->
+        <div class="task-section Nes nes-container is-rounded with-title">
+             <h3 class="title">Your Quests</h3>
+            <div class="add-task Nes nes-field">
+                <label for="new-task-input">New Quest:</label>
+                <input type="text" id="new-task-input" class="Nes nes-input" placeholder="Enter quest details...">
+                <button id="add-task-btn" type="button" class="Nes nes-btn is-primary">Add</button>
+            </div>
+
+            <div class="task-lists">
+                <div class="list-container">
+                    <h4><i class="Nes nes-icon is-small star"></i>To Do</h4>
+                    <ul id="todo-list" class="Nes nes-list is-disc"></ul>
+                </div>
+                <div class="list-container">
+                    <h4><i class="Nes nes-icon is-small heart"></i>Ongoing</h4>
+                    <ul id="ongoing-list" class="Nes nes-list is-disc"></ul>
+                </div>
+                <div class="list-container">
+                     <h4><i class="Nes nes-icon is-small trophy"></i>Completed</h4>
+                    <ul id="completed-list" class="Nes nes-list is-disc"></ul>
+                </div>
+            </div>
+
+             <div class="day-actions">
+                 <button id="complete-day-btn" type="button" class="Nes nes-btn is-success">Complete Day</button>
+                 <button id="new-day-btn" type="button" class="Nes nes-btn is-warning">Start New Day</button>
+             </div>
+        </div>
+    </div>
+
+    <!-- Mission Report Modal -->
+    <div id="mission-report-modal" class="modal-overlay hidden">
+        <div class="Nes nes-dialog is-rounded" id="mission-dialog">
+             <form method="dialog">
+                <p class="title">Mission Report</p>
+                <p id="report-date"></p>
+                <p id="report-summary"></p>
+                <div id="report-tasks">
+                    <p><strong>Completed Quests:</strong></p>
+                    <ul id="report-task-list" class="Nes nes-list is-circle"></ul>
+                </div>
+                <p id="report-game-status"></p>
+                 <p id="report-streak-status"></p> <!-- Added Streak Status to Report -->
+                <menu class="dialog-menu">
+                    <button class="Nes nes-btn is-primary" id="close-report-btn">Acknowledged</button>
+                </menu>
+            </form>
+        </div>
+    </div>
+
+    <!-- Incomplete Tasks Modal -->
+     <div id="incomplete-dialog-overlay" class="modal-overlay hidden">
+         <div class="Nes nes-dialog is-rounded" id="incomplete-dialog">
+              <form method="dialog">
+                 <p class="title" id="incomplete-dialog-title">Quests Remaining!</p>
+                 <p id="incomplete-dialog-message"></p>
+                 <div id="incomplete-dialog-tasks">
+                     <p><strong>Unfinished Quests:</strong></p>
+                     <ul id="incomplete-task-list" class="Nes nes-list is-circle"></ul>
+                 </div>
+                 <menu class="dialog-menu">
+                     <button class="Nes nes-btn is-error" id="cancel-complete-btn">Cancel</button>
+                     <button class="Nes nes-btn is-success" id="force-complete-btn">Complete Anyway</button>
+                 </menu>
+             </form>
+         </div>
+     </div>
+
+     <!-- Profile Edit Modal -->
+     <div id="profile-edit-modal" class="modal-overlay hidden">
+         <div class="Nes nes-dialog is-rounded" id="profile-dialog">
+              <form method="dialog">
+                 <p class="title">Edit Profile</p>
+                 <div class="nes-field">
+                     <label for="profile-name-input">Adventurer Name:</label>
+                     <input type="text" id="profile-name-input" class="Nes nes-input" maxlength="20">
+                 </div>
+                 <div class="nes-field">
+                     <label for="profile-icon-select">Choose Icon:</label>
+                      <div id="profile-icon-selection" class="icon-grid">
+                          <!-- Icons populated by JS -->
+                      </div>
+                 </div>
+                 <!-- New Section for Collected Items -->
+                 <div class="nes-field">
+                     <label>Collected Items:</label>
+                     <div id="collected-items-display" class="Nes nes-container is-dark is-rounded">
+                         <ul id="collected-items-list" class="Nes nes-list is-disc">
+                             <!-- Items populated by JS -->
+                         </ul>
+                         <p id="no-items-message">No items collected yet.</p>
+                     </div>
+                 </div>
+
+                 <menu class="dialog-menu">
+                     <button class="Nes nes-btn is-error" id="cancel-profile-edit-btn">Cancel</button>
+                     <button class="Nes nes-btn is-primary" id="save-profile-btn">Save</button>
+                 </menu>
+             </form>
+         </div>
+     </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
