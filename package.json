@@ -6,7 +6,7 @@
   "scripts": {
     "start": "python3 -m http.server 3000",
     "dev": "npx serve -s . -l 3000",
-    "build": "mkdir -p dist && cp -r *.html *.css *.js dist/"
+    "build": "rm -rf dist && mkdir -p dist && cp index.html style.css script.js dist/"
   },
   "keywords": ["todo", "vanilla-js", "retro"],
   "author": "",
