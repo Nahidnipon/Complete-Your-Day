@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const welcomeMessage = document.getElementById('welcome-message');
     const dateTimeDisplay = document.getElementById('date-time');
-    const gameSelectDropdown = document.getElementById('game-select-dropdown');
     const gameTitle = document.getElementById('game-title');
     const gameVisual = document.getElementById('game-visual');
     const gameProgressArea = document.getElementById('game-progress');
@@ -20,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportSummary = document.getElementById('report-summary');
     const reportTaskList = document.getElementById('report-task-list');
     const reportGameStatus = document.getElementById('report-game-status');
-    const reportStreakStatus = document.getElementById('report-streak-status');
     const closeReportBtn = document.getElementById('close-report-btn');
     const mainContainer = document.querySelector('.container');
     const incompleteDialogOverlay = document.getElementById('incomplete-dialog-overlay');
@@ -31,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const forceCompleteBtn = document.getElementById('force-complete-btn');
     const profileIconSpan = document.getElementById('profile-icon');
     const playerNameSpan = document.getElementById('player-name');
-    const playerStreakSpan = document.getElementById('player-level');
     const editProfileBtn = document.getElementById('edit-profile-btn');
     const profileEditModal = document.getElementById('profile-edit-modal');
     const profileNameInput = document.getElementById('profile-name-input');
@@ -40,6 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const noItemsMessage = document.getElementById('no-items-message');
     const cancelProfileEditBtn = document.getElementById('cancel-profile-edit-btn');
     const saveProfileBtn = document.getElementById('save-profile-btn');
+    
+    // Timer elements
+    const timerDisplay = document.getElementById('timer-display');
+    const timerStartBtn = document.getElementById('timer-start');
+    const timerPauseBtn = document.getElementById('timer-pause');
+    const timerResetBtn = document.getElementById('timer-reset');
+    const totalTimeDisplay = document.getElementById('total-time-display');
 
     // --- Audio ---
     let completeSound, victorySound;
@@ -91,10 +95,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let dateTimeInterval = null;
     let isDayCompleteState = false;
     let gameWinState = false;
-    let profile = { name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] };
+    let profile = { name: 'Adventurer', icon: '👤', collectedItems: [] };
+    
+    // Timer state
+    let timerInterval = null;
+    let timerSeconds = 25 * 60; // 25 minutes in seconds
+    let totalTimeToday = 0; // Total time spent today in seconds
+    let isTimerRunning = false;
+    
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v10_subtasks', GAME_INFO: 'vintageGameInfo_v10_subtasks',
-        DAY_COMPLETE: 'vintageDayComplete_v10_subtasks', PROFILE: 'vintageProfile_v6_subtasks'
+        TASKS: 'vintageTasks_v11_notimer', GAME_INFO: 'vintageGameInfo_v11_notimer',
+        DAY_COMPLETE: 'vintageDayComplete_v11_notimer', PROFILE: 'vintageProfile_v11_notimer',
+        TIMER: 'vintageTimer_v11_notimer'
     };
     let draggedTaskId = null; // For drag and drop
 
@@ -105,10 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function startDateTimeInterval() { if (!dateTimeInterval) dateTimeInterval = setInterval(updateDateTime, 1000); }
     function getCurrentDateString() { return new Date().toISOString().split('T')[0]; }
-
-    function populateGameSelector() {
-        gameSelectDropdown.innerHTML = GAME_THEMES.map(game => `<option value="${game.id}">${game.name}</option>`).join('');
-    }
 
     function saveGameSelection(gameId, dateStr) {
         localStorage.setItem(STORAGE_KEYS.GAME_INFO, JSON.stringify({ id: gameId, date: dateStr }));
@@ -126,19 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGameSelection(gameIdToUse, todayStr);
         }
         currentGame = GAME_THEMES.find(g => g.id === gameIdToUse) || GAME_THEMES[0];
-        if (gameSelectDropdown.value !== currentGame.id) gameSelectDropdown.value = currentGame.id;
-    }
-
-    function handleGameChange() {
-        if (isDayCompleteState) { gameSelectDropdown.value = currentGame.id; return; }
-        const selectedGame = GAME_THEMES.find(g => g.id === gameSelectDropdown.value);
-        if (selectedGame) {
-            currentGame = selectedGame;
-            saveGameSelection(selectedGame.id, getCurrentDateString());
-            renderAll();
-        } else {
-            gameSelectDropdown.value = currentGame.id; // Revert if invalid
-        }
     }
 
     function loadState() {
@@ -181,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isGameWonCurrent = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
         mainContainer.classList.toggle('day-completed', isDayCompleteState);
-        [addTaskBtn, newTaskInput, gameSelectDropdown].forEach(el => el.disabled = isDayCompleteState);
+        [addTaskBtn, newTaskInput].forEach(el => el.disabled = isDayCompleteState);
         completeDayBtn.disabled = isDayCompleteState || totalTasksCount === 0; // Simpler logic, allow completion with incomplete tasks via dialog
 
         if (isGameWonCurrent && isDayCompleteState) {
@@ -582,24 +577,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const completedCount = tasks.filter(t => t.status === 'completed').length;
         const totalCount = tasks.length;
         const gameActuallyWon = totalCount > 0 && completedCount === totalCount;
-        let streakMsg = "";
+
 
         if (gameActuallyWon) {
-            profile.streak++;
-            streakMsg = `Streak maintained! You are on a ${profile.streak} day streak!`;
-            const reward = REWARDS.find(r => r.streak === profile.streak);
-            if (reward && !profile.collectedItems.includes(reward.item)) {
-                profile.collectedItems.push(reward.item);
-                streakMsg += `\nReward unlocked: ${reward.item}!`;
-            }
             playSound(victorySound);
-        } else {
-            streakMsg = profile.streak > 0 ? `Streak broken! Your streak of ${profile.streak} days is reset.` : "Daily quest incomplete. Streak remains 0.";
-            profile.streak = 0;
         }
         isDayCompleteState = true;
-        reportStreakStatus.textContent = streakMsg;
-        reportStreakStatus.className = gameActuallyWon ? 'is-success' : 'is-error';
         
         renderProfile(); // Update header display
         renderAll(); // This will call setDayCompletionStyling, saveState, and re-render tasks (disabling draggable)
@@ -682,7 +665,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameActuallyWon = tasks.length > 0 && completed.length === tasks.length;
         reportGameStatus.textContent = `Daily Challenge (${currentGame.name}): ${gameActuallyWon ? 'SUCCESSFUL!' : 'Incomplete'}`;
         reportGameStatus.className = gameActuallyWon ? 'is-success' : 'is-error';
-        // reportStreakStatus is set in finalizeDayCompletion
         missionReportModal.classList.remove('hidden');
     }
     function closeMissionReport() { missionReportModal.classList.add('hidden'); }
@@ -698,8 +680,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isDayCompleteState = false; tasks = []; gameWinState = false;
         // Profile (streak, items) is preserved unless reset by finalizeDayCompletion above
+        totalTimeToday = 0; // Reset timer for new day
         determineGame(); // Sets new game for the new day
         renderAll(); // Clears lists, resets game area, saves state
+        updateTimerDisplay();
         [missionReportModal, incompleteDialogOverlay].forEach(m => m.classList.add('hidden'));
         if (!isDayCompleteState) newTaskInput.focus();
     }
@@ -737,6 +721,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function playSound(audio) {
         if (audio?.readyState >= 2) { audio.currentTime = 0; audio.play().catch(e => console.warn("Audio play failed", e)); }
+    }
+    
+    // --- Timer Functions ---
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    function updateTimerDisplay() {
+        timerDisplay.textContent = formatTime(timerSeconds);
+        totalTimeDisplay.textContent = `Total: ${formatTime(totalTimeToday)}`;
+    }
+    
+    function startTimer() {
+        if (isTimerRunning) return;
+        isTimerRunning = true;
+        timerInterval = setInterval(() => {
+            if (timerSeconds > 0) {
+                timerSeconds--;
+                totalTimeToday++;
+                updateTimerDisplay();
+                saveState();
+            } else {
+                // Timer finished
+                pauseTimer();
+                playSound(completeSound);
+                alert('Focus session complete! Take a break.');
+            }
+        }, 1000);
+    }
+    
+    function pauseTimer() {
+        isTimerRunning = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+    
+    function resetTimer() {
+        pauseTimer();
+        timerSeconds = 25 * 60; // Reset to 25 minutes
+        updateTimerDisplay();
     }
 
     // --- Drag and Drop Functions ---
@@ -876,7 +904,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners ---
     addTaskBtn.addEventListener('click', addTask);
     newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
-    gameSelectDropdown.addEventListener('change', handleGameChange);
     completeDayBtn.addEventListener('click', completeDay);
     newDayBtn.addEventListener('click', () => startNewDay(false));
     closeReportBtn.addEventListener('click', closeMissionReport);
@@ -888,6 +915,11 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelProfileEditBtn.addEventListener('click', closeProfileEditModal);
     saveProfileBtn.addEventListener('click', saveProfileEdit);
     profileEditModal.addEventListener('click', (e) => { if (e.target === profileEditModal) closeProfileEditModal(); });
+    
+    // Timer event listeners
+    timerStartBtn.addEventListener('click', startTimer);
+    timerPauseBtn.addEventListener('click', pauseTimer);
+    timerResetBtn.addEventListener('click', resetTimer);
 
     // Drag and Drop Listeners for todoList container
     todoList.addEventListener('dragover', handleDragOver);
@@ -923,11 +955,11 @@ document.addEventListener('DOMContentLoaded', () => {
         [missionReportModal, incompleteDialogOverlay, profileEditModal, noItemsMessage].forEach(el => el.classList.add('hidden'));
 
         const autoNewDayStarted = loadState();
-        populateGameSelector();
         if (!autoNewDayStarted) determineGame(); // Sets currentGame and syncs dropdown
 
         renderProfile();
         renderAll(); // Initial render of tasks, game area, styles, and save
+        updateTimerDisplay(); // Initialize timer display
         startDateTimeInterval();
         if (!isDayCompleteState) newTaskInput.focus();
     }
