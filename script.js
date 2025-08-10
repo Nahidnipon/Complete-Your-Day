@@ -732,6 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
         timerDisplay.textContent = formatTime(timerSeconds);
         totalTimeDisplay.textContent = `Total: ${formatTime(totalTimeToday)}`;
     }
+        
+        // Update progress bar
+        const progress = ((timerState.duration - timerState.timeLeft) / timerState.duration) * 100;
+        timerProgressFill.style.width = `${progress}%`;
     
     function startTimer() {
         if (isTimerRunning) return;

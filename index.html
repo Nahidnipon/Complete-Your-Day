@@ -54,21 +54,24 @@
 
         <!-- Task Area -->
         <div class="task-section Nes nes-container is-rounded with-title">
-            <div class="task-header">
-                <h3 class="title">Your Quests</h3>
-                <div class="add-task">
-                    <label for="new-task-input">New Quest:</label>
-                    <div class="add-task-input-group">
-                        <input type="text" id="new-task-input" class="Nes nes-input" placeholder="Enter quest details...">
-                        <button id="add-task-btn" type="button" class="Nes nes-btn is-primary">Add</button>
+            <!-- Focus Timer Bar -->
+            <div class="timer-bar-section">
+                <div class="timer-bar-container">
+                    <div class="timer-progress-bar">
+                        <div id="timer-progress-fill" class="timer-progress-fill"></div>
+                        <div class="timer-display-overlay">
+                            <span id="timer-display">25:00</span>
+                        </div>
+                    </div>
+                    <div class="timer-controls-inline">
+                        <button id="timer-start" type="button" class="Nes nes-btn is-success is-small">▶</button>
+                        <button id="timer-pause" type="button" class="Nes nes-btn is-warning is-small">⏸</button>
+                        <button id="timer-reset" type="button" class="Nes nes-btn is-error is-small">⏹</button>
+                        <span id="total-time-display" class="total-time-inline">Total: 0:00</span>
                     </div>
                 </div>
             </div>
 
-            <div class="task-lists">
-                <div class="list-container">
-                    <h4><i class="Nes nes-icon is-small star"></i>To Do</h4>
-                    <ul id="todo-list" class="Nes nes-list is-disc"></ul>
                 </div>
                 <div class="list-container">
                     <h4><i class="Nes nes-icon is-small heart"></i>Ongoing</h4>
