@@ -165,8 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderProfile() {
         profileIconSpan.textContent = profile.icon;
         playerNameSpan.textContent = profile.name;
-        playerStreakSpan.textContent = `Streak: ${profile.streak}`;
-        playerStreakSpan.className = `streak-display ${profile.streak > 0 ? 'is-success' : 'is-error'}`;
         welcomeMessage.textContent = `Welcome ${profile.name}!`;
     }
     
