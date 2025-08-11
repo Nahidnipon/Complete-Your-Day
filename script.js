@@ -939,7 +939,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const draggedTaskActual = tasks.find(task => task.id.toString() === draggedTaskId);
         if (!draggedTaskActual) {
             console.error("Dragged task data not found:", draggedTaskId);
-            cleanupDragDropVisuals(); return;
+        }
+        // Determine target status based on which list we dropped on
+        const targetList = e.currentTarget;
+        let newStatus;
+        if (targetList === todoList) {
+            newStatus = 'todo';
+        } else if (targetList === ongoingList) {
+            newStatus = 'ongoing';
+        } else if (targetList === completedList) {
+            newStatus = 'completed';
         }
 
         // Determine target status based on which list we dropped on
@@ -974,6 +983,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (afterIndex !== -1) {
                 filteredTasks.splice(afterIndex, 0, draggedTask);
+            }
+        }
+        // Update task status
+        tasks = tasks.map(task => {
+            if (task.id.toString() === draggedTaskId) {
+                return { ...task, status: newStatus };
+            }
+            return task;
+        });
+                filteredTasks.push(draggedTask);
+        // Handle reordering within the same status group
+        const afterElement = getDragAfterElement(targetList, e.clientY);
+        if (afterElement) {
+            const afterTaskId = afterElement.dataset.id;
+            const sameStatusTasks = tasks.filter(t => t.status === newStatus);
+            const otherTasks = tasks.filter(t => t.status !== newStatus);
+            
+            const draggedTask = sameStatusTasks.find(t => t.id.toString() === draggedTaskId);
+            const filteredTasks = sameStatusTasks.filter(t => t.id.toString() !== draggedTaskId);
+            const afterIndex = filteredTasks.findIndex(t => t.id.toString() === afterTaskId);
+            
+            if (afterIndex !== -1) {
+                filteredTasks.splice(afterIndex, 0, draggedTask);
             } else {
                 filteredTasks.push(draggedTask);
             }
@@ -983,12 +1015,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dropping at the end, just reorder by status
             const todoTasks = tasks.filter(t => t.status === 'todo');
             const ongoingTasks = tasks.filter(t => t.status === 'ongoing');
+            // Dropping at the end, just reorder by status
+            const todoTasks = tasks.filter(t => t.status === 'todo');
+            const ongoingTasks = tasks.filter(t => t.status === 'ongoing');
             const completedTasks = tasks.filter(t => t.status === 'completed');
             tasks = [...todoTasks, ...ongoingTasks, ...completedTasks];
         }
 
         // Play sound if task was completed
         if (newStatus === 'completed' && draggedTaskActual.status !== 'completed') {
+            playSound(completeSound);
             playSound(completeSound);
         }
         
