@@ -101,9 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
         totalTime: 25 * 60,
         isRunning: false,
         interval: null,
-        totalTimeToday: 0,
-        lastResetDate: getCurrentDateString()
+        dailyTotal: 0,
+        lastDate: getCurrentDateString()
     };
+    const TIMER_STORAGE_KEY = 'vintageTimer_v1';
     
     // Timer state
     let timerInterval = null;
