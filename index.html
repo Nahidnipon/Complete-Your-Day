@@ -18,6 +18,9 @@
         <div class="profile-section">
              <span id="profile-icon">👤</span>
              <span id="player-name">Adventurer</span>
+             <!-- Reusing player-level element to display streak -->
+             <span id="player-level" class="streak-display">Streak: 0</span>
+             <!-- Removed #player-xp -->
              <button id="edit-profile-btn" type="button" class="Nes nes-btn is-warning is-small">Edit</button>
         </div>
         <div class="header-right">
@@ -26,17 +29,13 @@
     </header>
 
     <div class="container Nes nes-container is-rounded is-dark">
-        <!-- Pomodoro Timer -->
-        <div class="pomodoro-section Nes nes-container is-rounded">
-            <h3 class="title">Focus Timer</h3>
-            <div class="timer-display" id="timer-display">25:00</div>
-            <div class="timer-controls">
-                <button id="timer-start" type="button" class="Nes nes-btn is-success is-small">▶</button>
-                <button id="timer-pause" type="button" class="Nes nes-btn is-warning is-small">⏸</button>
-                <button id="timer-reset" type="button" class="Nes nes-btn is-error is-small">⏹</button>
-            </div>
-            <div class="timer-info">
-                <span id="total-time-display">Total: 0:00</span>
+        <!-- Game Selection -->
+        <div class="game-selection Nes nes-field is-inline">
+            <label for="game-select-dropdown">Daily Quest:</label>
+            <div class="Nes nes-select">
+                <select id="game-select-dropdown" required>
+                    <!-- Options populated by JS -->
+                </select>
             </div>
         </div>
 
@@ -54,24 +53,17 @@
 
         <!-- Task Area -->
         <div class="task-section Nes nes-container is-rounded with-title">
-            <!-- Focus Timer Bar -->
-            <div class="timer-bar-section">
-                <div class="timer-bar-container">
-                    <div class="timer-progress-bar">
-                        <div id="timer-progress-fill" class="timer-progress-fill"></div>
-                        <div class="timer-display-overlay">
-                            <span id="timer-display">25:00</span>
-                        </div>
-                    </div>
-                    <div class="timer-controls-inline">
-                        <button id="timer-start" type="button" class="Nes nes-btn is-success is-small">▶</button>
-                        <button id="timer-pause" type="button" class="Nes nes-btn is-warning is-small">⏸</button>
-                        <button id="timer-reset" type="button" class="Nes nes-btn is-error is-small">⏹</button>
-                        <span id="total-time-display" class="total-time-inline">Total: 0:00</span>
-                    </div>
-                </div>
+             <h3 class="title">Your Quests</h3>
+            <div class="add-task Nes nes-field">
+                <label for="new-task-input">New Quest:</label>
+                <input type="text" id="new-task-input" class="Nes nes-input" placeholder="Enter quest details...">
+                <button id="add-task-btn" type="button" class="Nes nes-btn is-primary">Add</button>
             </div>
 
+            <div class="task-lists">
+                <div class="list-container">
+                    <h4><i class="Nes nes-icon is-small star"></i>To Do</h4>
+                    <ul id="todo-list" class="Nes nes-list is-disc"></ul>
                 </div>
                 <div class="list-container">
                     <h4><i class="Nes nes-icon is-small heart"></i>Ongoing</h4>
@@ -102,6 +94,7 @@
                     <ul id="report-task-list" class="Nes nes-list is-circle"></ul>
                 </div>
                 <p id="report-game-status"></p>
+                 <p id="report-streak-status"></p> <!-- Added Streak Status to Report -->
                 <menu class="dialog-menu">
                     <button class="Nes nes-btn is-primary" id="close-report-btn">Acknowledged</button>
                 </menu>

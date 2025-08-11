@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const welcomeMessage = document.getElementById('welcome-message');
     const dateTimeDisplay = document.getElementById('date-time');
+    const gameSelectDropdown = document.getElementById('game-select-dropdown');
     const gameTitle = document.getElementById('game-title');
     const gameVisual = document.getElementById('game-visual');
     const gameProgressArea = document.getElementById('game-progress');
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportSummary = document.getElementById('report-summary');
     const reportTaskList = document.getElementById('report-task-list');
     const reportGameStatus = document.getElementById('report-game-status');
+    const reportStreakStatus = document.getElementById('report-streak-status');
     const closeReportBtn = document.getElementById('close-report-btn');
     const mainContainer = document.querySelector('.container');
     const incompleteDialogOverlay = document.getElementById('incomplete-dialog-overlay');
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const forceCompleteBtn = document.getElementById('force-complete-btn');
     const profileIconSpan = document.getElementById('profile-icon');
     const playerNameSpan = document.getElementById('player-name');
+    const playerStreakSpan = document.getElementById('player-level');
     const editProfileBtn = document.getElementById('edit-profile-btn');
     const profileEditModal = document.getElementById('profile-edit-modal');
     const profileNameInput = document.getElementById('profile-name-input');
@@ -37,13 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const noItemsMessage = document.getElementById('no-items-message');
     const cancelProfileEditBtn = document.getElementById('cancel-profile-edit-btn');
     const saveProfileBtn = document.getElementById('save-profile-btn');
-    
-    // Timer elements
-    const timerDisplay = document.getElementById('timer-display');
-    const timerStartBtn = document.getElementById('timer-start');
-    const timerPauseBtn = document.getElementById('timer-pause');
-    const timerResetBtn = document.getElementById('timer-reset');
-    const totalTimeDisplay = document.getElementById('total-time-display');
 
     // --- Audio ---
     let completeSound, victorySound;
@@ -95,133 +91,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let dateTimeInterval = null;
     let isDayCompleteState = false;
     let gameWinState = false;
-    let profile = { name: 'Adventurer', icon: '👤', collectedItems: [] };
-    let timerState = {
-        timeLeft: 25 * 60, // 25 minutes in seconds
-        totalTime: 25 * 60,
-        isRunning: false,
-        interval: null,
-        dailyTotal: 0,
-        lastDate: getCurrentDateString()
-    };
-    const TIMER_STORAGE_KEY = 'vintageTimer_v1';
-    
-    // Timer state
-    let timerInterval = null;
-    let timerSeconds = 25 * 60; // 25 minutes in seconds
-    let totalTimeToday = 0; // Total time spent today in seconds
-    let isTimerRunning = false;
-    
+    let profile = { name: 'Adventurer', icon: '👤', streak: 0, collectedItems: [] };
     const STORAGE_KEYS = {
-        TASKS: 'vintageTasks_v10_subtasks', 
-        GAME_INFO: 'vintageGameInfo_v10_subtasks',
-        DAY_COMPLETE: 'vintageDayComplete_v10_subtasks', 
-        PROFILE: 'vintageProfile_v6_subtasks',
-        TIMER: 'vintageTimer_v1'
-        TIMER: 'vintageTimer_v11_notimer'
+        TASKS: 'vintageTasks_v10_subtasks', GAME_INFO: 'vintageGameInfo_v10_subtasks',
+        DAY_COMPLETE: 'vintageDayComplete_v10_subtasks', PROFILE: 'vintageProfile_v6_subtasks'
     };
     let draggedTaskId = null; // For drag and drop
 
     // --- Functions ---
     function updateDateTime() {
         const now = new Date();
-        dateTimeDisplay.textContent = `${now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/New_York' })} ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })}`;
+        dateTimeDisplay.textContent = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}`;
     }
     function startDateTimeInterval() { if (!dateTimeInterval) dateTimeInterval = setInterval(updateDateTime, 1000); }
     function getCurrentDateString() { return new Date().toISOString().split('T')[0]; }
 
-    // Timer Functions
-    function updateTimerDisplay() {
-        const timerDisplay = document.getElementById('timer-display');
-        const totalTimeDisplay = document.getElementById('total-time-display');
-        if (timerDisplay) timerDisplay.textContent = formatTime(timerState.timeLeft);
-        if (totalTimeDisplay) totalTimeDisplay.textContent = `Total: ${formatTime(timerState.totalTimeToday)}`;
-    }
-
-    function updateTimerProgressBar() {
-        const progressFill = document.getElementById('timer-progress-fill');
-        if (progressFill) {
-            const progress = ((timerState.totalTime - timerState.timeLeft) / timerState.totalTime) * 100;
-            progressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
-        }
-    }
-
-    function updateTimer() {
-        if (timerState.timeLeft > 0) {
-            timerState.timeLeft--;
-            timerState.totalTimeToday++;
-            updateTimerDisplay();
-            updateTimerProgressBar();
-            saveTimerState();
-        } else {
-            // Timer finished
-            pauseTimer();
-            playSound(victorySound);
-            alert('Focus session complete! Great job!');
-        }
-    }
-
-    function startTimer() {
-        if (!timerState.isRunning) {
-            timerState.isRunning = true;
-            timerState.interval = setInterval(updateTimer, 1000);
-            updateTimerButtons();
-        }
-    }
-
-    function pauseTimer() {
-        if (timerState.isRunning) {
-            timerState.isRunning = false;
-            if (timerState.interval) {
-                clearInterval(timerState.interval);
-                timerState.interval = null;
-            }
-            updateTimerButtons();
-        }
-    }
-
-    function resetTimer() {
-        pauseTimer();
-        timerState.timeLeft = timerState.totalTime;
-        updateTimerDisplay();
-        updateTimerProgressBar();
-        saveTimerState();
-    }
-
-    function updateTimerButtons() {
-        const startBtn = document.getElementById('timer-start');
-        const pauseBtn = document.getElementById('timer-pause');
-        if (startBtn) startBtn.disabled = timerState.isRunning;
-        if (pauseBtn) pauseBtn.disabled = !timerState.isRunning;
-    }
-
-    function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    function saveTimerState() {
-        localStorage.setItem(STORAGE_KEYS.TIMER, JSON.stringify(timerState));
-    }
-
-    function loadTimerState() {
-        const saved = localStorage.getItem(STORAGE_KEYS.TIMER);
-        if (saved) {
-            const savedState = JSON.parse(saved);
-            const today = getCurrentDateString();
-            
-            // Reset total time if it's a new day
-            if (savedState.lastResetDate !== today) {
-                savedState.totalTimeToday = 0;
-                savedState.lastResetDate = today;
-            }
-            
-            timerState = { ...timerState, ...savedState };
-            // Don't restore running state - always start paused
-            timerState.isRunning = false;
-            timerState.interval = null;
-        }
+    function populateGameSelector() {
+        gameSelectDropdown.innerHTML = GAME_THEMES.map(game => `<option value="${game.id}">${game.name}</option>`).join('');
     }
 
     function saveGameSelection(gameId, dateStr) {
@@ -240,15 +126,27 @@ document.addEventListener('DOMContentLoaded', () => {
             saveGameSelection(gameIdToUse, todayStr);
         }
         currentGame = GAME_THEMES.find(g => g.id === gameIdToUse) || GAME_THEMES[0];
+        if (gameSelectDropdown.value !== currentGame.id) gameSelectDropdown.value = currentGame.id;
+    }
+
+    function handleGameChange() {
+        if (isDayCompleteState) { gameSelectDropdown.value = currentGame.id; return; }
+        const selectedGame = GAME_THEMES.find(g => g.id === gameSelectDropdown.value);
+        if (selectedGame) {
+            currentGame = selectedGame;
+            saveGameSelection(selectedGame.id, getCurrentDateString());
+            renderAll();
+        } else {
+            gameSelectDropdown.value = currentGame.id; // Revert if invalid
+        }
     }
 
     function loadState() {
         tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS)) || [];
-        loadTimerState();
         // Migrate old tasks to include status field
         tasks = tasks.map(task => ({
             ...task,
-            status: task.status || (task.completed ? 'completed' : 'todo'),
+            status: task.status || (task.completed ? 'completed' : 'todo')
             subtasks: task.subtasks || []
         }));
         isDayCompleteState = localStorage.getItem(STORAGE_KEYS.DAY_COMPLETE) === 'true';
@@ -267,12 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
         localStorage.setItem(STORAGE_KEYS.DAY_COMPLETE, isDayCompleteState);
         localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
-        saveTimerState();
     }
 
     function renderProfile() {
         profileIconSpan.textContent = profile.icon;
         playerNameSpan.textContent = profile.name;
+        playerStreakSpan.textContent = `Streak: ${profile.streak}`;
+        playerStreakSpan.className = `streak-display ${profile.streak > 0 ? 'is-success' : 'is-error'}`;
         welcomeMessage.textContent = `Welcome ${profile.name}!`;
     }
     
@@ -282,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isGameWonCurrent = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
 
         mainContainer.classList.toggle('day-completed', isDayCompleteState);
-        [addTaskBtn, newTaskInput].forEach(el => el.disabled = isDayCompleteState);
+        [addTaskBtn, newTaskInput, gameSelectDropdown].forEach(el => el.disabled = isDayCompleteState);
         completeDayBtn.disabled = isDayCompleteState || totalTasksCount === 0; // Simpler logic, allow completion with incomplete tasks via dialog
 
         if (isGameWonCurrent && isDayCompleteState) {
@@ -683,12 +582,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const completedCount = tasks.filter(t => t.status === 'completed').length;
         const totalCount = tasks.length;
         const gameActuallyWon = totalCount > 0 && completedCount === totalCount;
-
+        let streakMsg = "";
 
         if (gameActuallyWon) {
+            profile.streak++;
+            streakMsg = `Streak maintained! You are on a ${profile.streak} day streak!`;
+            const reward = REWARDS.find(r => r.streak === profile.streak);
+            if (reward && !profile.collectedItems.includes(reward.item)) {
+                profile.collectedItems.push(reward.item);
+                streakMsg += `\nReward unlocked: ${reward.item}!`;
+            }
             playSound(victorySound);
+        } else {
+            streakMsg = profile.streak > 0 ? `Streak broken! Your streak of ${profile.streak} days is reset.` : "Daily quest incomplete. Streak remains 0.";
+            profile.streak = 0;
         }
         isDayCompleteState = true;
+        reportStreakStatus.textContent = streakMsg;
+        reportStreakStatus.className = gameActuallyWon ? 'is-success' : 'is-error';
         
         renderProfile(); // Update header display
         renderAll(); // This will call setDayCompletionStyling, saveState, and re-render tasks (disabling draggable)
@@ -771,6 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameActuallyWon = tasks.length > 0 && completed.length === tasks.length;
         reportGameStatus.textContent = `Daily Challenge (${currentGame.name}): ${gameActuallyWon ? 'SUCCESSFUL!' : 'Incomplete'}`;
         reportGameStatus.className = gameActuallyWon ? 'is-success' : 'is-error';
+        // reportStreakStatus is set in finalizeDayCompletion
         missionReportModal.classList.remove('hidden');
     }
     function closeMissionReport() { missionReportModal.classList.add('hidden'); }
@@ -786,10 +698,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         isDayCompleteState = false; tasks = []; gameWinState = false;
         // Profile (streak, items) is preserved unless reset by finalizeDayCompletion above
-        totalTimeToday = 0; // Reset timer for new day
         determineGame(); // Sets new game for the new day
         renderAll(); // Clears lists, resets game area, saves state
-        updateTimerDisplay();
         [missionReportModal, incompleteDialogOverlay].forEach(m => m.classList.add('hidden'));
         if (!isDayCompleteState) newTaskInput.focus();
     }
@@ -827,54 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function playSound(audio) {
         if (audio?.readyState >= 2) { audio.currentTime = 0; audio.play().catch(e => console.warn("Audio play failed", e)); }
-    }
-    
-    // --- Timer Functions ---
-    function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    function updateTimerDisplay() {
-        timerDisplay.textContent = formatTime(timerSeconds);
-        totalTimeDisplay.textContent = `Total: ${formatTime(totalTimeToday)}`;
-    }
-        
-        // Update progress bar
-        const progress = ((timerState.duration - timerState.timeLeft) / timerState.duration) * 100;
-        timerProgressFill.style.width = `${progress}%`;
-    
-    function startTimer() {
-        if (isTimerRunning) return;
-        isTimerRunning = true;
-        timerInterval = setInterval(() => {
-            if (timerSeconds > 0) {
-                timerSeconds--;
-                totalTimeToday++;
-                updateTimerDisplay();
-                saveState();
-            } else {
-                // Timer finished
-                pauseTimer();
-                playSound(completeSound);
-                alert('Focus session complete! Take a break.');
-            }
-        }, 1000);
-    }
-    
-    function pauseTimer() {
-        isTimerRunning = false;
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
-    }
-    
-    function resetTimer() {
-        pauseTimer();
-        timerSeconds = 25 * 60; // Reset to 25 minutes
-        updateTimerDisplay();
     }
 
     // --- Drag and Drop Functions ---
@@ -939,16 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const draggedTaskActual = tasks.find(task => task.id.toString() === draggedTaskId);
         if (!draggedTaskActual) {
             console.error("Dragged task data not found:", draggedTaskId);
-        }
-        // Determine target status based on which list we dropped on
-        const targetList = e.currentTarget;
-        let newStatus;
-        if (targetList === todoList) {
-            newStatus = 'todo';
-        } else if (targetList === ongoingList) {
-            newStatus = 'ongoing';
-        } else if (targetList === completedList) {
-            newStatus = 'completed';
+            cleanupDragDropVisuals(); return;
         }
 
         // Determine target status based on which list we dropped on
@@ -970,29 +823,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return task;
         });
 
-        // Handle reordering within the same status group
-        const afterElement = getDragAfterElement(targetList, e.clientY);
-        if (afterElement) {
-            const afterTaskId = afterElement.dataset.id;
-            const sameStatusTasks = tasks.filter(t => t.status === newStatus);
-            const otherTasks = tasks.filter(t => t.status !== newStatus);
-            
-            const draggedTask = sameStatusTasks.find(t => t.id.toString() === draggedTaskId);
-            const filteredTasks = sameStatusTasks.filter(t => t.id.toString() !== draggedTaskId);
-            const afterIndex = filteredTasks.findIndex(t => t.id.toString() === afterTaskId);
-            
-            if (afterIndex !== -1) {
-                filteredTasks.splice(afterIndex, 0, draggedTask);
-            }
-        }
-        // Update task status
-        tasks = tasks.map(task => {
-            if (task.id.toString() === draggedTaskId) {
-                return { ...task, status: newStatus };
-            }
-            return task;
-        });
-                filteredTasks.push(draggedTask);
         // Handle reordering within the same status group
         const afterElement = getDragAfterElement(targetList, e.clientY);
         if (afterElement) {
@@ -1015,16 +845,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Dropping at the end, just reorder by status
             const todoTasks = tasks.filter(t => t.status === 'todo');
             const ongoingTasks = tasks.filter(t => t.status === 'ongoing');
-            // Dropping at the end, just reorder by status
-            const todoTasks = tasks.filter(t => t.status === 'todo');
-            const ongoingTasks = tasks.filter(t => t.status === 'ongoing');
             const completedTasks = tasks.filter(t => t.status === 'completed');
             tasks = [...todoTasks, ...ongoingTasks, ...completedTasks];
         }
 
         // Play sound if task was completed
         if (newStatus === 'completed' && draggedTaskActual.status !== 'completed') {
-            playSound(completeSound);
             playSound(completeSound);
         }
         
@@ -1048,16 +874,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
-    // Timer Event Listeners
-    const timerStartBtn = document.getElementById('timer-start');
-    const timerPauseBtn = document.getElementById('timer-pause');
-    const timerResetBtn = document.getElementById('timer-reset');
-    if (timerStartBtn) timerStartBtn.addEventListener('click', startTimer);
-    if (timerPauseBtn) timerPauseBtn.addEventListener('click', pauseTimer);
-    if (timerResetBtn) timerResetBtn.addEventListener('click', resetTimer);
-
     addTaskBtn.addEventListener('click', addTask);
     newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+    gameSelectDropdown.addEventListener('change', handleGameChange);
     completeDayBtn.addEventListener('click', completeDay);
     newDayBtn.addEventListener('click', () => startNewDay(false));
     closeReportBtn.addEventListener('click', closeMissionReport);
@@ -1069,11 +888,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelProfileEditBtn.addEventListener('click', closeProfileEditModal);
     saveProfileBtn.addEventListener('click', saveProfileEdit);
     profileEditModal.addEventListener('click', (e) => { if (e.target === profileEditModal) closeProfileEditModal(); });
-    
-    // Timer event listeners
-    timerStartBtn.addEventListener('click', startTimer);
-    timerPauseBtn.addEventListener('click', pauseTimer);
-    timerResetBtn.addEventListener('click', resetTimer);
 
     // Drag and Drop Listeners for todoList container
     todoList.addEventListener('dragover', handleDragOver);
@@ -1109,15 +923,12 @@ document.addEventListener('DOMContentLoaded', () => {
         [missionReportModal, incompleteDialogOverlay, profileEditModal, noItemsMessage].forEach(el => el.classList.add('hidden'));
 
         const autoNewDayStarted = loadState();
+        populateGameSelector();
         if (!autoNewDayStarted) determineGame(); // Sets currentGame and syncs dropdown
 
         renderProfile();
         renderAll(); // Initial render of tasks, game area, styles, and save
-        updateTimerDisplay(); // Initialize timer display
         startDateTimeInterval();
-        updateTimerDisplay();
-        updateTimerProgressBar();
-        updateTimerButtons();
         if (!isDayCompleteState) newTaskInput.focus();
     }
 
