@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Functions ---
     function updateDateTime() {
         const now = new Date();
-        dateTimeDisplay.textContent = `${now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+        dateTimeDisplay.textContent = `${now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/New_York' })} ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })}`;
     }
     function startDateTimeInterval() { if (!dateTimeInterval) dateTimeInterval = setInterval(updateDateTime, 1000); }
     function getCurrentDateString() { return new Date().toISOString().split('T')[0]; }
